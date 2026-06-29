@@ -1,7 +1,9 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-engine = create_engine("sqlite:///./corpusforge.db", connect_args={"check_same_thread": False})
+_db_path = "/app/data/corpusforge.db" if os.getenv("FLY_APP_NAME") else "./corpusforge.db"
+engine = create_engine(f"sqlite:///{_db_path}", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
 
 
