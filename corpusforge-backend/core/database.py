@@ -7,3 +7,8 @@ SessionLocal = sessionmaker(bind=engine)
 
 class Base(DeclarativeBase):
     pass
+
+
+def init_db():
+    from models import document, chunk, entity, relationship, pattern, compliance_gap, alert  # noqa: F401
+    Base.metadata.create_all(engine)
