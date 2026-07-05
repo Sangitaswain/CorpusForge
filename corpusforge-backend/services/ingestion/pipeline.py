@@ -137,6 +137,14 @@ def process_document(document_id: str, file_bytes: bytes) -> None:
 
             entity_count = asyncio.run(extract_entities_for_document(document_id, all_chunks, db))
 
+            # BP-03 step 7: update the in-memory graph and build co-occurrence edges
+            from models.entity import Entity as EntityModel
+            from services.graph_builder import build_cooccurrence_edges, graph_builder
+
+            for entity in db.query(EntityModel).filter_by(document_id=document_id).all():
+                graph_builder.add_entity_node(entity)
+            build_cooccurrence_edges(document_id, db)
+
             doc.status = "done"
             doc.entity_count = entity_count
             db.commit()

@@ -65,6 +65,13 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 init_db()
 
+# BP-05: load the knowledge graph from SQLite once at startup
+from core.database import SessionLocal  # noqa: E402
+from services.graph_builder import graph_builder  # noqa: E402
+
+with SessionLocal() as _db:
+    graph_builder.load_from_db(_db)
+
 from routers.documents import router as documents_router  # noqa: E402
 from routers.query import router as query_router  # noqa: E402
 

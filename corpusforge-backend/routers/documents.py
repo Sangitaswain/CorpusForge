@@ -194,5 +194,14 @@ def delete_document(document_id: str, db: Session = Depends(get_db)):
     db.query(Chunk).filter_by(document_id=document_id).delete()
     db.delete(doc)
     db.commit()
+
+    # Rebuild the in-memory graph without this document's entities/edges
+    try:
+        from services.graph_builder import graph_builder
+
+        graph_builder.load_from_db(db)
+    except Exception:
+        logger.warning("Graph rebuild failed after deleting document %s", document_id)
+
     logger.info("Document %s deleted", document_id)
     return ok({"message": "Document deleted."})
