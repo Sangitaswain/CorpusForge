@@ -1,4 +1,4 @@
-import { ArrowRight, X } from 'lucide-react';
+import { ArrowRight, ExternalLink, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNodeDetail } from '../../hooks/useGraph';
 import { NODE_COLORS, NODE_TYPE_LABELS, nodeTypeOf } from '../../utils/constants';
@@ -73,6 +73,14 @@ export default function NodeDetailPanel({ entityId, onClose }: NodeDetailPanelPr
                 </div>
               ))}
             </div>
+          </div>
+          <div className="p-4">
+            <button
+              onClick={() => navigate('/copilot', { state: { question: `Tell me everything about ${data.entity.name}` } })}
+              className="w-full inline-flex items-center justify-center gap-2 border border-accent-teal text-accent-teal hover:bg-[#0F2822] px-4 py-2 rounded-md text-sm font-medium transition-fast min-h-[44px]"
+            >
+              <ExternalLink size={14} /> Open in Copilot
+            </button>
           </div>
         </>
       ) : null}

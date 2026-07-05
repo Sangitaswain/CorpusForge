@@ -14,25 +14,31 @@ export default function CopilotPage() {
   const threadEndRef = useRef<HTMLDivElement>(null);
   const askedFromState = useRef(false);
 
-  const handleSubmit = (question: string) => {
+  const handleSubmit = async (question: string) => {
     setMessages((prev) => [
       ...prev,
       { id: crypto.randomUUID(), type: 'question', content: question, timestamp: new Date() },
     ]);
-    ask.mutate(question, {
-      onSuccess: (response) => {
-        setMessages((prev) => [
-          ...prev,
-          { id: crypto.randomUUID(), type: 'answer', content: response.answer, response, timestamp: new Date() },
-        ]);
-      },
-      onError: (error) => {
-        setMessages((prev) => [
-          ...prev,
-          { id: crypto.randomUUID(), type: 'answer', content: error.message, timestamp: new Date() },
-        ]);
-      },
-    });
+    // mutateAsync + try/catch: mutate()-level callbacks are skipped if the
+    // observer unmounts mid-flight (e.g. StrictMode remount on the
+    // graph → copilot navigation), which left the thread stuck on the loader
+    try {
+      const response = await ask.mutateAsync(question);
+      setMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), type: 'answer', content: response.answer, response, timestamp: new Date() },
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          type: 'answer',
+          content: error instanceof Error ? error.message : 'Unable to get an answer. Please try again.',
+          timestamp: new Date(),
+        },
+      ]);
+    }
   };
 
   // "Open in Copilot" from the graph passes a pre-filled question via location state
