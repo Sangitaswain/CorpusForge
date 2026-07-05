@@ -98,3 +98,100 @@ def test_cooccurrence_rules_create_edges(test_db, monkeypatch):
 
     # Re-running must not duplicate edges
     assert build_cooccurrence_edges("doc1", test_db) == 0
+
+
+import pytest
+
+
+@pytest.fixture
+def fresh_graph(test_db, monkeypatch):
+    """Reset the shared graph singleton to the (empty) test DB for router tests."""
+    import routers.graph as graph_router_module
+    import services.graph_builder as gb_module
+
+    fresh = GraphBuilder()
+    fresh.load_from_db(test_db)
+    monkeypatch.setattr(gb_module, "graph_builder", fresh)
+    monkeypatch.setattr(graph_router_module, "graph_builder", fresh)
+    return fresh
+
+
+def test_graph_endpoint_returns_correct_schema(test_client, fresh_graph):
+    response = test_client.get("/api/v1/graph")
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert "nodes" in data
+    assert "links" in data
+    assert "node_count" in data
+    assert "edge_count" in data
+    assert isinstance(data["nodes"], list)
+    assert isinstance(data["links"], list)
+
+
+def test_graph_returns_empty_when_no_data(test_client, fresh_graph):
+    response = test_client.get("/api/v1/graph")
+    data = response.json()["data"]
+    assert data["node_count"] == 0
+    assert data["edge_count"] == 0
+
+
+def test_graph_node_endpoint_validates_uuid(test_client, fresh_graph):
+    response = test_client.get("/api/v1/graph/node/not-a-uuid")
+    assert response.status_code == 400
+
+
+def test_graph_node_returns_404_for_unknown_id(test_client, fresh_graph):
+    response = test_client.get(f"/api/v1/graph/node/{uuid.uuid4()}")
+    assert response.status_code == 404
+
+
+def test_graph_focus_param_sanitized(test_client, fresh_graph):
+    # SQL injection attempt in focus param — must not 500
+    response = test_client.get("/api/v1/graph?focus='; DROP TABLE entities;--")
+    assert response.status_code in [200, 400]
+
+
+def test_graph_focus_returns_one_hop(test_client, test_db, fresh_graph):
+    e1 = _entity("equipment_tag", "P-101")
+    e2 = _entity("procedure_code", "SOP-07")
+    e3 = _entity("person", "Someone Unrelated", doc="doc9")
+    test_db.add_all([e1, e2, e3])
+    test_db.commit()
+    r = Relationship(
+        id=str(uuid.uuid4()),
+        source_entity_id=e1.id,
+        target_entity_id=e2.id,
+        rel_type="MAINTAINED_BY",
+        source_document_id="doc1",
+    )
+    test_db.add(r)
+    test_db.commit()
+    fresh_graph.load_from_db(test_db)
+    response = test_client.get("/api/v1/graph?focus=P-101")
+    data = response.json()["data"]
+    names = {n["name"] for n in data["nodes"]}
+    assert names == {"P-101", "SOP-07"}
+
+
+def test_graph_node_detail_lists_connections(test_client, test_db, fresh_graph):
+    e1 = _entity("equipment_tag", "P-101")
+    e2 = _entity("procedure_code", "SOP-07")
+    test_db.add_all([e1, e2])
+    test_db.commit()
+    r = Relationship(
+        id=str(uuid.uuid4()),
+        source_entity_id=e1.id,
+        target_entity_id=e2.id,
+        rel_type="MAINTAINED_BY",
+        source_document_id="doc1",
+    )
+    test_db.add(r)
+    test_db.commit()
+    fresh_graph.load_from_db(test_db)
+    response = test_client.get(f"/api/v1/graph/node/{e1.id}")
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["entity"]["name"] == "P-101"
+    assert len(data["connected"]) == 1
+    assert data["connected"][0]["entity"] == "SOP-07"
+    assert data["connected"][0]["relationship"] == "MAINTAINED_BY"

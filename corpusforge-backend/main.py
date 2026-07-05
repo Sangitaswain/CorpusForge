@@ -73,9 +73,11 @@ with SessionLocal() as _db:
     graph_builder.load_from_db(_db)
 
 from routers.documents import router as documents_router  # noqa: E402
+from routers.graph import router as graph_router  # noqa: E402
 from routers.query import router as query_router  # noqa: E402
 
 app.include_router(documents_router, prefix="/api/v1")
+app.include_router(graph_router, prefix="/api/v1")
 app.include_router(query_router, prefix="/api/v1")
 
 
