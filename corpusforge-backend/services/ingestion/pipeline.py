@@ -82,9 +82,10 @@ def embed_and_store(chunks: list[dict], document_id: str, db) -> None:
 
 
 def process_document(document_id: str, file_bytes: bytes) -> None:
-    """Background task entry point (BP-03 steps 2-5).
+    """Background task entry point (BP-03 steps 2-5 + finalise).
 
-    Status updates and error handling are completed in Substep 2.6.
+    Never raises: any failure marks the document 'failed' with a safe
+    error message and logs the full traceback server-side (SO-03).
     """
     logger.info("Ingestion started for document %s", document_id)
     with SessionLocal() as db:
@@ -93,22 +94,37 @@ def process_document(document_id: str, file_bytes: bytes) -> None:
             logger.error("Ingestion aborted: document %s not found", document_id)
             return
 
-        file_kind = detect_file_kind(doc.filename, file_bytes)
-        pages = extract_text(file_kind, file_bytes)
-        doc.doc_type = classify_doc_type(doc.filename, pages[0]["text"] if pages else "")
-        doc.page_count = len(pages)
-        db.commit()
+        try:
+            file_kind = detect_file_kind(doc.filename, file_bytes)
+            pages = extract_text(file_kind, file_bytes)
+            doc.doc_type = classify_doc_type(doc.filename, pages[0]["text"] if pages else "")
+            doc.page_count = len(pages)
+            db.commit()
 
-        all_chunks = []
-        for page in pages:
-            made = chunk_text(
-                page["text"], document_id=document_id, page_number=page["page_number"],
-                db=db, start_index=len(all_chunks),
+            all_chunks = []
+            for page in pages:
+                made = chunk_text(
+                    page["text"], document_id=document_id, page_number=page["page_number"],
+                    db=db, start_index=len(all_chunks),
+                )
+                all_chunks.extend(made)
+
+            if not all_chunks:
+                raise ValueError("No text could be extracted from this file.")
+
+            embed_and_store(all_chunks, document_id, db)
+
+            # Entity extraction arrives in Step 4 — count stays 0 until then.
+            doc.status = "done"
+            doc.entity_count = 0
+            db.commit()
+            logger.info(
+                "Ingestion done for document %s: %d pages, %d chunks (kind %s)",
+                document_id, len(pages), len(all_chunks), file_kind,
             )
-            all_chunks.extend(made)
-
-        embed_and_store(all_chunks, document_id, db)
-        logger.info(
-            "Ingestion pipeline stored %d chunks for document %s (kind %s)",
-            len(all_chunks), document_id, file_kind,
-        )
+        except Exception:
+            logger.exception("Ingestion failed for document %s", document_id)
+            db.rollback()
+            doc.status = "failed"
+            doc.error_msg = "Processing failed. The file may be corrupt, password-protected, or empty."
+            db.commit()
