@@ -4,12 +4,12 @@ export type DocumentType = 'manual' | 'work_order' | 'inspection' | 'sop' | 'inc
 export interface Document {
   id: string;
   filename: string;
-  doc_type: DocumentType;
+  doc_type: DocumentType | null;
   status: DocumentStatus;
   page_count: number;
   entity_count: number;
   uploaded_at: string;
-  error_msg?: string;
+  error_msg?: string | null;
 }
 
 export interface UploadResponse {
