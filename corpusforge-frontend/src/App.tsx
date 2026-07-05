@@ -5,6 +5,7 @@ import CopilotPage from './pages/CopilotPage';
 import GraphPage from './pages/GraphPage';
 import IntelligencePage from './pages/IntelligencePage';
 import AlertsPage from './pages/AlertsPage';
+import DocumentViewerPage from './pages/DocumentViewerPage';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/graph" element={<GraphPage />} />
         <Route path="/intelligence" element={<IntelligencePage />} />
         <Route path="/alerts" element={<AlertsPage />} />
+        <Route path="/document-viewer" element={<DocumentViewerPage />} />
       </Routes>
     </BrowserRouter>
   );

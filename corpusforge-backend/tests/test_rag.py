@@ -137,3 +137,12 @@ def test_gemini_failure_returns_structured_error(test_client, seeded_document):
     body = response.json()
     assert body["code"] == "llm_unavailable"
     assert "boom" not in body["error"]
+
+
+def test_get_document_file_validates_page_param(test_client, seeded_document):
+    # Valid page → redirect to signed URL
+    r1 = test_client.get(f"/api/v1/documents/{seeded_document.id}/file?page=1", follow_redirects=False)
+    assert r1.status_code in [200, 302, 307]
+    # Invalid page → 400
+    r2 = test_client.get(f"/api/v1/documents/{seeded_document.id}/file?page=abc", follow_redirects=False)
+    assert r2.status_code == 400

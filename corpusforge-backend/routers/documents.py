@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from core.dependencies import get_db
@@ -135,6 +136,30 @@ def list_documents(db: Session = Depends(get_db)):
         for d in docs
     ]
     return ok(items)
+
+
+@router.get("/{document_id}/file")
+def get_document_file(document_id: str, page: str | None = None, db: Session = Depends(get_db)):
+    doc = get_document_or_404(document_id, db)
+
+    page_number = None
+    if page is not None:
+        # SO-05: positive integer, clamped to the document's page count
+        if not page.isdigit() or int(page) < 1:
+            raise ApiError(400, "Invalid page number.", "invalid_page")
+        page_number = int(page)
+        if doc.page_count:
+            page_number = min(page_number, doc.page_count)
+
+    try:
+        signed_url = file_storage.get_signed_url(doc.file_url, expires_in=3600)
+    except Exception:
+        logger.exception("Signed URL generation failed for document %s", document_id)
+        raise ApiError(502, "Could not open this document right now. Please try again.", "storage_unavailable")
+
+    if page_number is not None:
+        signed_url = f"{signed_url}#page={page_number}"
+    return RedirectResponse(signed_url, status_code=307)
 
 
 @router.get("/{document_id}/status")
