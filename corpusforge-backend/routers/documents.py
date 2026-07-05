@@ -13,6 +13,8 @@ from core.dependencies import get_db
 from core.responses import ApiError, ok
 from models.chunk import Chunk
 from models.document import Document
+from models.entity import Entity
+from models.relationship import Relationship
 from schemas.document import DocumentItem, DocumentStatus, UploadResult
 from services import file_storage
 from services.ingestion.pipeline import process_document
@@ -186,6 +188,9 @@ def delete_document(document_id: str, db: Session = Depends(get_db)):
     except Exception:
         logger.warning("Vector cleanup failed for document %s", document_id)
 
+    # SQLite does not enforce FK cascades by default — delete children explicitly
+    db.query(Relationship).filter_by(source_document_id=document_id).delete()
+    db.query(Entity).filter_by(document_id=document_id).delete()
     db.query(Chunk).filter_by(document_id=document_id).delete()
     db.delete(doc)
     db.commit()

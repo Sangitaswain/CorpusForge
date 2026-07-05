@@ -48,6 +48,7 @@ def parse_entity_json(raw_response: str) -> list[dict]:
         if not isinstance(entities, list):
             return []
         valid = []
+        seen: set[tuple[str, str]] = set()
         for item in entities:
             if not isinstance(item, dict):
                 continue
@@ -55,6 +56,10 @@ def parse_entity_json(raw_response: str) -> list[dict]:
             value = str(item.get("value", "")).strip()
             if entity_type not in VALID_ENTITY_TYPES or not value:
                 continue
+            key = (entity_type, normalize_value(entity_type, value))
+            if key in seen:
+                continue
+            seen.add(key)
             try:
                 confidence = min(max(float(item.get("confidence", 1.0)), 0.0), 1.0)
             except (TypeError, ValueError):

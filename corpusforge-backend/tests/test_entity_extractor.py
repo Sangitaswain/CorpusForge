@@ -57,3 +57,15 @@ def test_entity_count_updates_after_ingestion(test_client, test_db, mock_gemini_
     status = test_client.get(f"/api/v1/documents/{doc_id}/status")
     # Pipeline is mocked in unit tests — manual test verifies actual extraction
     assert status.json()["data"]["status"] in ["done", "processing"]
+
+
+def test_entity_extractor_dedupes_repeated_entities():
+    from services.ingestion.entity_extractor import parse_entity_json
+
+    raw = (
+        '{"entities": ['
+        '{"entity_type": "equipment_tag", "value": "P-101", "confidence": 0.95},'
+        '{"entity_type": "equipment_tag", "value": "p-101", "confidence": 0.9}]}'
+    )
+    result = parse_entity_json(raw)
+    assert len(result) == 1
