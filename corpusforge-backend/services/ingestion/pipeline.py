@@ -7,7 +7,11 @@ wiring with status updates lands in Substep 2.6.
 import logging
 from pathlib import Path
 
+from core.database import SessionLocal
+from models.chunk import Chunk
+from models.document import Document
 from services.ingestion import ocr_extractor, pdf_extractor, spreadsheet_extractor
+from services.ingestion.chunker import chunk_text
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +64,51 @@ def extract_text(file_kind: str, file_bytes: bytes) -> list[dict]:
     return [{"page_number": 1, "text": file_bytes.decode("utf-8", errors="replace")}]
 
 
+def embed_and_store(chunks: list[dict], document_id: str, db) -> None:
+    """BP-03 step 5: embed chunks, add to ChromaDB, record chroma_id in SQLite."""
+    if not chunks:
+        return
+    # Imported lazily so unit tests can run without loading the embedding model
+    from services.embeddings import embedding_service
+    from services.vector_store import vector_store
+
+    embeddings = embedding_service.embed_batch([c["text"] for c in chunks])
+    chroma_ids = vector_store.add_chunks(chunks, embeddings, document_id)
+    for chunk, chroma_id in zip(chunks, chroma_ids):
+        row = db.query(Chunk).filter_by(id=chunk["chunk_id"]).first()
+        if row is not None:
+            row.chroma_id = chroma_id
+    db.commit()
+
+
 def process_document(document_id: str, file_bytes: bytes) -> None:
-    """Background task entry point. Placeholder until Substep 2.6 wires steps 2-5."""
+    """Background task entry point (BP-03 steps 2-5).
+
+    Status updates and error handling are completed in Substep 2.6.
+    """
     logger.info("Ingestion started for document %s", document_id)
+    with SessionLocal() as db:
+        doc = db.query(Document).filter_by(id=document_id).first()
+        if doc is None:
+            logger.error("Ingestion aborted: document %s not found", document_id)
+            return
+
+        file_kind = detect_file_kind(doc.filename, file_bytes)
+        pages = extract_text(file_kind, file_bytes)
+        doc.doc_type = classify_doc_type(doc.filename, pages[0]["text"] if pages else "")
+        doc.page_count = len(pages)
+        db.commit()
+
+        all_chunks = []
+        for page in pages:
+            made = chunk_text(
+                page["text"], document_id=document_id, page_number=page["page_number"],
+                db=db, start_index=len(all_chunks),
+            )
+            all_chunks.extend(made)
+
+        embed_and_store(all_chunks, document_id, db)
+        logger.info(
+            "Ingestion pipeline stored %d chunks for document %s (kind %s)",
+            len(all_chunks), document_id, file_kind,
+        )

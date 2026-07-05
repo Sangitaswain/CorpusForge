@@ -153,6 +153,14 @@ def delete_document(document_id: str, db: Session = Depends(get_db)):
         except Exception:
             logger.warning("Storage delete failed for document %s", document_id)
 
+    try:
+        # Lazy import: keeps ChromaDB out of unit tests that never touch vectors
+        from services.vector_store import vector_store
+
+        vector_store.delete_document(document_id)
+    except Exception:
+        logger.warning("Vector cleanup failed for document %s", document_id)
+
     db.query(Chunk).filter_by(document_id=document_id).delete()
     db.delete(doc)
     db.commit()
