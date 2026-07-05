@@ -4,6 +4,7 @@ Runs as a FastAPI background task. Steps are added substep by substep:
 extraction, chunking, and embedding arrive in Substeps 2.2-2.4; the full
 wiring with status updates lands in Substep 2.6.
 """
+import asyncio
 import logging
 from pathlib import Path
 
@@ -15,14 +16,26 @@ from services.ingestion.chunker import chunk_text
 
 logger = logging.getLogger(__name__)
 
-# BP-03 step 2: doc_type classification keywords, checked in order.
-DOC_TYPE_KEYWORDS = [
-    ("manual", ["manual", "oem", "datasheet"]),
-    ("work_order", ["wo-", "work order", "maintenance"]),
-    ("sop", ["sop-", "procedure", "instruction"]),
-    ("incident", ["inc-", "incident", "near-miss"]),
-    ("inspection", ["inspection", "insp-"]),
-    ("regulation", ["oisd", "factory act", "regulation", "standard"]),
+# BP-03 step 2: doc_type classification keywords. Explicit code prefixes
+# (tier 1) are checked before generic words (tier 2) so that e.g. an
+# incident report mentioning "maintenance" is not classed as a work order.
+DOC_TYPE_KEYWORD_TIERS = [
+    [
+        ("manual", ["oem"]),
+        ("work_order", ["wo-"]),
+        ("sop", ["sop-"]),
+        ("incident", ["inc-", "near-miss"]),
+        ("inspection", ["insp-"]),
+        ("regulation", ["oisd"]),
+    ],
+    [
+        ("manual", ["manual", "datasheet"]),
+        ("work_order", ["work order", "maintenance"]),
+        ("sop", ["procedure", "instruction"]),
+        ("incident", ["incident"]),
+        ("inspection", ["inspection"]),
+        ("regulation", ["factory act", "regulation", "standard"]),
+    ],
 ]
 
 
@@ -41,11 +54,16 @@ def detect_file_kind(filename: str, file_bytes: bytes) -> str:
 
 
 def classify_doc_type(filename: str, first_pass_text: str) -> str:
-    """BP-03 step 2: business document type from filename keywords or first-pass text."""
-    haystack = (filename + "\n" + first_pass_text[:2000]).lower()
-    for doc_type, keywords in DOC_TYPE_KEYWORDS:
-        if any(kw in haystack for kw in keywords):
-            return doc_type
+    """BP-03 step 2: business document type from filename keywords or first-pass text.
+
+    The filename is the stronger signal, so it is checked against all types
+    before falling back to the document body.
+    """
+    for haystack in (filename.lower(), first_pass_text[:2000].lower()):
+        for tier in DOC_TYPE_KEYWORD_TIERS:
+            for doc_type, keywords in tier:
+                if any(kw in haystack for kw in keywords):
+                    return doc_type
     return "other"
 
 
@@ -114,9 +132,13 @@ def process_document(document_id: str, file_bytes: bytes) -> None:
 
             embed_and_store(all_chunks, document_id, db)
 
-            # Entity extraction arrives in Step 4 — count stays 0 until then.
+            # BP-03 step 6: Gemini entity extraction (rate-limited inside)
+            from services.ingestion.entity_extractor import extract_entities_for_document
+
+            entity_count = asyncio.run(extract_entities_for_document(document_id, all_chunks, db))
+
             doc.status = "done"
-            doc.entity_count = 0
+            doc.entity_count = entity_count
             db.commit()
             logger.info(
                 "Ingestion done for document %s: %d pages, %d chunks (kind %s)",
