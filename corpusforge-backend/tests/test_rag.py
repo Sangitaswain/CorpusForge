@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from models.document import Document
+from models.entity import Entity
 
 # Response assertions follow the Rule 9 envelope: {"data": ..., "status": "ok"}.
 
@@ -146,3 +147,36 @@ def test_get_document_file_validates_page_param(test_client, seeded_document):
     # Invalid page → 400
     r2 = test_client.get(f"/api/v1/documents/{seeded_document.id}/file?page=abc", follow_redirects=False)
     assert r2.status_code == 400
+
+
+def test_used_graph_true_when_entity_in_graph(test_client, test_db, seeded_document, monkeypatch):
+    from services.graph_builder import GraphBuilder
+    import services.rag as rag_module
+
+    fresh = GraphBuilder()
+    e1 = Entity(id=str(uuid.uuid4()), document_id=seeded_document.id, chunk_id="c1",
+                entity_type="equipment_tag", value="P-101", normalized_value="P-101")
+    e2 = Entity(id=str(uuid.uuid4()), document_id=seeded_document.id, chunk_id="c1",
+                entity_type="procedure_code", value="SOP-07", normalized_value="SOP-07")
+    test_db.add_all([e1, e2])
+    test_db.commit()
+    from models.relationship import Relationship
+    rel = Relationship(id=str(uuid.uuid4()), source_entity_id=e1.id, target_entity_id=e2.id,
+                       rel_type="MAINTAINED_BY", source_document_id=seeded_document.id)
+    test_db.add(rel)
+    test_db.commit()
+    fresh.load_from_db(test_db)
+    monkeypatch.setattr(rag_module, "graph_builder", fresh)
+
+    hits = [{"chunk_id": "c1", "document_id": seeded_document.id, "page_number": 1,
+             "text": "P-101 maximum operating pressure is 18 bar.", "distance": 0.2}]
+    gemini = _gemini_response({"answer": "P-101 is maintained under SOP-07 [DOC: c1]", "raw_citations": ["c1"]})
+    with _patch_embed(), _patch_hits(hits), patch("services.rag.gemini_model", gemini):
+        response = test_client.post("/api/v1/query", json={"question": "What happened with P-101?"})
+    data = response.json()["data"]
+    assert data["used_graph"] is True
+
+    # And the graph context must have been in the prompt, delimited
+    prompt_sent = gemini.generate_content.call_args[0][0]
+    assert "GRAPH CONNECTIONS:" in prompt_sent
+    assert "MAINTAINED_BY" in prompt_sent

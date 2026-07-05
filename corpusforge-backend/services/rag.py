@@ -13,6 +13,7 @@ from core.config import settings
 from models.document import Document
 from prompts.answer_generation import answer_generation_prompt
 from schemas.query import Citation, QueryResponse
+from services.graph_builder import graph_builder
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,49 @@ def generate_follow_up_questions(answer_text: str, entity_mentions: list[str]) -
     return follow_ups
 
 
+def extract_entity_mentions(question: str) -> list[str]:
+    """Find graph entity names mentioned in the question (BP-04 step 4).
+
+    Regex for industrial codes plus a lookup of known node names.
+    """
+    mentions = list(dict.fromkeys(CODE_PATTERN.findall(question)))
+    lowered = question.lower()
+    for _, attrs in graph_builder.G.nodes(data=True):
+        name = attrs.get("name") or ""
+        if len(name) > 2 and name.lower() in lowered and name not in mentions:
+            mentions.append(name)
+    return [m[:100] for m in mentions]  # SO-06: cap entity name length
+
+
+def format_graph_context(graph_context: list[dict]) -> str:
+    lines = []
+    for item in graph_context:
+        source = f" (source: {item['source_document']})" if item.get("source_document") else ""
+        lines.append(f"{item['entity_name']} --{item['relationship']}--> {item['neighbour']}{source}")
+    return "\n".join(lines)
+
+
+def gather_graph_context(question: str, db: Session) -> tuple[list[str], str, bool]:
+    """Returns (mentioned_entities, formatted_graph_context, used_graph)."""
+    mentioned = extract_entity_mentions(question)
+    graph_context = []
+    for value in mentioned:
+        node_id = graph_builder.find_node_by_value(value)
+        if not node_id:
+            continue
+        for neighbour in graph_builder.get_neighbours_with_metadata(node_id, db):
+            graph_context.append(
+                {
+                    "entity_name": graph_builder.G.nodes[node_id].get("name"),
+                    "relationship": neighbour["relationship"],
+                    "neighbour": neighbour["entity"],
+                    "source_document": neighbour["source_document"],
+                }
+            )
+    used_graph = bool(graph_context)
+    return mentioned, format_graph_context(graph_context) if used_graph else "", used_graph
+
+
 def compute_confidence(distance: float) -> str:
     if distance < 0.3:
         return "High"
@@ -147,8 +191,11 @@ def answer_question(question: str, db: Session) -> QueryResponse:
     if best_distance > 0.7:
         return NOT_FOUND_RESPONSE
 
+    # BP-04 steps 4-5: graph context, delimited in its own prompt section (SO-06)
+    mentioned, graph_text, used_graph = gather_graph_context(question, db)
+
     context_text = format_chunks_with_citations(hits)
-    prompt = answer_generation_prompt(question, context_text)
+    prompt = answer_generation_prompt(question, context_text, graph_text)
 
     try:
         response = gemini_model.generate_content(
@@ -172,12 +219,12 @@ def answer_question(question: str, db: Session) -> QueryResponse:
 
     citations = resolve_citations(raw_citations, hits, db)
     confidence = compute_confidence(best_distance)
-    follow_ups = generate_follow_up_questions(answer_text, CODE_PATTERN.findall(question))
+    follow_ups = generate_follow_up_questions(answer_text, mentioned)
 
     return QueryResponse(
         answer=answer_text,
         confidence=confidence,
         citations=citations,
-        used_graph=False,
+        used_graph=used_graph,
         follow_ups=follow_ups,
     )
