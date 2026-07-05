@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Share2 } from 'lucide-react';
+import { Filter, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { GraphNode, NodeType } from '../types/graph';
 import { useGraph } from '../hooks/useGraph';
@@ -77,7 +77,7 @@ export default function GraphPage() {
           <div className="flex-1"><LoadingSpinner /></div>
         ) : error ? (
           <div className="flex-1 p-6"><ErrorBanner message={error.message} /></div>
-        ) : !filteredData || filteredData.node_count === 0 ? (
+        ) : !data || data.node_count === 0 ? (
           <div className="flex-1">
             <EmptyState
               icon={Share2}
@@ -85,6 +85,16 @@ export default function GraphPage() {
               description="Upload and process documents to build the graph."
               actionLabel="Go to Documents"
               onAction={() => navigate('/documents')}
+            />
+          </div>
+        ) : !filteredData || filteredData.nodes.length === 0 ? (
+          <div className="flex-1">
+            <EmptyState
+              icon={Filter}
+              heading="No nodes match the current filters"
+              description="Every node type is currently hidden. Clear the filters to see the graph."
+              actionLabel="Clear filters"
+              onAction={() => setHiddenTypes(new Set())}
             />
           </div>
         ) : (
