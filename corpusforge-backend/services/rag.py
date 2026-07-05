@@ -34,6 +34,53 @@ NOT_FOUND_RESPONSE = QueryResponse(
 
 CITATION_MARKER = re.compile(r"\s*\[DOC:\s*([^\]]+)\]")
 
+# Industrial identifiers: P-101, C-205, FT-401, SOP-07, INC-2022-07, WO-2024-0312, OISD-STD-105
+CODE_PATTERN = re.compile(r"\b(?:OISD(?:-[A-Z]+)?-\d+|[A-Z]{1,4}-\d{2,6}(?:-\d+)?)\b")
+
+FOLLOW_UP_TEMPLATES = {
+    "SOP": [
+        "Which equipment does {e} apply to?",
+        "What does {e} require?",
+        "When was {e} last revised?",
+    ],
+    "INC": [
+        "What caused {e}?",
+        "Which equipment was involved in {e}?",
+        "What corrective actions followed {e}?",
+    ],
+    "WO": [
+        "Who performed {e}?",
+        "Which equipment does {e} cover?",
+        "When was {e} completed?",
+    ],
+    "OISD": [
+        "Which procedures implement {e}?",
+        "What does {e} require for compliance?",
+        "Are there any gaps against {e}?",
+    ],
+    "default": [
+        "What is the maintenance procedure for {e}?",
+        "Has {e} been involved in any incidents?",
+        "When was {e} last serviced?",
+    ],
+}
+
+
+def generate_follow_up_questions(answer_text: str, entity_mentions: list[str]) -> list[str]:
+    """Up to 3 follow-up questions built from entities in the answer/question (BP-04 step 10)."""
+    candidates = list(dict.fromkeys(list(entity_mentions) + CODE_PATTERN.findall(answer_text)))
+    follow_ups: list[str] = []
+    for entity in candidates:
+        prefix = entity.split("-")[0].upper()
+        templates = FOLLOW_UP_TEMPLATES.get(prefix, FOLLOW_UP_TEMPLATES["default"])
+        for template in templates:
+            question = template.format(e=entity)
+            if question not in follow_ups:
+                follow_ups.append(question)
+            if len(follow_ups) == 3:
+                return follow_ups
+    return follow_ups
+
 
 def compute_confidence(distance: float) -> str:
     if distance < 0.3:
@@ -125,11 +172,12 @@ def answer_question(question: str, db: Session) -> QueryResponse:
 
     citations = resolve_citations(raw_citations, hits, db)
     confidence = compute_confidence(best_distance)
+    follow_ups = generate_follow_up_questions(answer_text, CODE_PATTERN.findall(question))
 
     return QueryResponse(
         answer=answer_text,
         confidence=confidence,
         citations=citations,
         used_graph=False,
-        follow_ups=[],
+        follow_ups=follow_ups,
     )
