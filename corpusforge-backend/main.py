@@ -66,8 +66,10 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 init_db()
 
 from routers.documents import router as documents_router  # noqa: E402
+from routers.query import router as query_router  # noqa: E402
 
 app.include_router(documents_router, prefix="/api/v1")
+app.include_router(query_router, prefix="/api/v1")
 
 
 @app.get("/health")
