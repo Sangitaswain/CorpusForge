@@ -1,0 +1,5 @@
+SOP-12: Gas Detector Maintenance Procedure
+Equipment: FT-401 Series Gas Detector
+Calibration Frequency: Annual (every 12 months)
+Next Calibration Due: January 2025
+Procedure Owner: Safety Department

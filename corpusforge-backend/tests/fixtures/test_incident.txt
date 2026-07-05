@@ -1,0 +1,8 @@
+INC-2022-07: Pump P-101 Bearing Failure
+Date: 15 July 2022
+Equipment: P-101 Centrifugal Pump
+Cause: Improper grease type applied during maintenance
+Contractor: ABC Engineering Services
+Technician: Rajesh Nair
+Last Maintenance: 10 July 2022
+Damage: Bearing seized, 8 hour downtime

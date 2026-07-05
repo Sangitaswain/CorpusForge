@@ -1,0 +1,7 @@
+P-101 Centrifugal Pump Specification
+Equipment Tag: P-101
+Maximum Operating Pressure: 18 bar
+Normal Operating Pressure: 12-16 bar
+Last Maintenance Date: 2024-03-14
+Maintenance Performed By: Rajesh Nair, ABC Engineering Services
+Applicable Procedure: SOP-07
