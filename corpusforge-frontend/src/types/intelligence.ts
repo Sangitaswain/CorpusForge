@@ -13,6 +13,7 @@ export interface Pattern {
   recommendation: string;
   citations: Citation[];
   created_at: string;
+  last_run_at: string | null;
 }
 
 export interface ComplianceSummary {

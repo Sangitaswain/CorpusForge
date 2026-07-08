@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from core.dependencies import get_db
 from core.responses import ApiError, ok
+from models.document import Document
 from models.pattern import Pattern
 from routers.documents import validate_uuid
 from services.pattern_engine import run_pattern_analysis
@@ -18,7 +19,13 @@ router = APIRouter(prefix="/intelligence", tags=["intelligence"])
 SEVERITY_ORDER = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
 
 
-def _pattern_to_dict(pattern: Pattern) -> dict:
+def _pattern_to_dict(pattern: Pattern, db: Session) -> dict:
+    incident_ids = json.loads(pattern.incident_ids or "[]")
+    citations = []
+    for document_id in incident_ids:
+        doc = db.query(Document).filter_by(id=document_id).first()
+        if doc is not None:
+            citations.append({"document_id": doc.id, "filename": doc.filename, "page_number": 1})
     return {
         "id": pattern.id,
         "title": pattern.title,
@@ -26,7 +33,7 @@ def _pattern_to_dict(pattern: Pattern) -> dict:
         "recommendation": pattern.recommendation,
         "severity": pattern.severity,
         "incident_count": pattern.incident_count,
-        "incident_ids": json.loads(pattern.incident_ids or "[]"),
+        "citations": citations,
         "equipment_tags": json.loads(pattern.equipment_tags or "[]"),
         "created_at": pattern.created_at,
         "last_run_at": pattern.last_run_at,
@@ -43,7 +50,7 @@ def trigger_pattern_analysis(background_tasks: BackgroundTasks):
 def list_patterns(db: Session = Depends(get_db)):
     patterns = db.query(Pattern).all()
     patterns.sort(key=lambda p: SEVERITY_ORDER.get(p.severity, 99))
-    return ok([_pattern_to_dict(p) for p in patterns])
+    return ok([_pattern_to_dict(p, db) for p in patterns])
 
 
 @router.get("/patterns/{pattern_id}")
@@ -52,4 +59,4 @@ def get_pattern(pattern_id: str, db: Session = Depends(get_db)):
     pattern = db.query(Pattern).filter_by(id=pattern_id).first()
     if pattern is None:
         raise ApiError(404, "Pattern not found.", "not_found")
-    return ok(_pattern_to_dict(pattern))
+    return ok(_pattern_to_dict(pattern, db))
