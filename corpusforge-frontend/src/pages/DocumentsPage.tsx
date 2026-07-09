@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FolderOpen } from 'lucide-react';
+import { FolderOpen, SearchX } from 'lucide-react';
 import type { Document, DocumentStatus } from '../types/document';
 import { useDeleteDocument, useDocuments, useUploadDocument } from '../hooks/useDocuments';
 import DocumentTable from '../components/documents/DocumentTable';
@@ -52,10 +52,12 @@ export default function DocumentsPage() {
         <UploadZone onFiles={handleFiles} />
       </div>
 
-      <div className="mt-6 flex flex-col gap-3">
-        <StatusTabs active={statusFilter} onChange={setStatusFilter} />
-        <DocumentTypeBreakdown counts={docTypeCounts} />
-      </div>
+      {documents && documents.length > 0 && (
+        <div className="mt-6 flex flex-col gap-3">
+          <StatusTabs active={statusFilter} onChange={setStatusFilter} />
+          <DocumentTypeBreakdown counts={docTypeCounts} />
+        </div>
+      )}
 
       {uploadError && (
         <div className="mt-4">
@@ -73,6 +75,12 @@ export default function DocumentsPage() {
             icon={FolderOpen}
             heading="No documents yet"
             description="Upload your first document to get started."
+          />
+        ) : filteredDocuments.length === 0 ? (
+          <EmptyState
+            icon={SearchX}
+            heading="No documents match this filter"
+            description="Try a different status tab."
           />
         ) : (
           <DocumentTable documents={filteredDocuments} onDelete={setPendingDelete} />
