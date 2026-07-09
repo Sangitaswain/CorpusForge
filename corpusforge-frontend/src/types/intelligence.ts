@@ -1,6 +1,6 @@
 import type { Citation } from './query';
 
-export type Severity = 'Critical' | 'High' | 'Medium' | 'Low';
+export type Severity = 'Audit-Critical' | 'Critical' | 'High' | 'Medium' | 'Low';
 export type ComplianceVerdict = 'compliant' | 'gap' | 'outdated' | 'undetermined';
 
 export interface Pattern {
@@ -34,6 +34,7 @@ export interface ComplianceGap {
   explanation: string;
   severity: Severity;
   recommendation: string;
-  regulation_citation: Citation;
+  procedure_text: string | null;
+  regulation_citation: Citation | null;
   procedure_citation: Citation | null;
 }

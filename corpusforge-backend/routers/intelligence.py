@@ -102,7 +102,8 @@ def _compliance_summary(gaps: list[ComplianceGap]) -> dict:
     for gap in gaps:
         if gap.verdict in counts:
             counts[gap.verdict] += 1
-    return {"total_clauses": len(gaps), **counts}
+    last_run_at = max((g.created_at for g in gaps if g.created_at), default=None)
+    return {"total_clauses": len(gaps), **counts, "last_run_at": last_run_at}
 
 
 def _sorted_gaps(db: Session) -> list[ComplianceGap]:

@@ -17,7 +17,7 @@ def test_get_compliance_returns_correct_schema(test_client):
     assert "summary" in data
     assert "gaps" in data
     summary = data["summary"]
-    for field in ["total_clauses", "compliant", "gap", "outdated", "undetermined"]:
+    for field in ["total_clauses", "compliant", "gap", "outdated", "undetermined", "last_run_at"]:
         assert field in summary
 
 

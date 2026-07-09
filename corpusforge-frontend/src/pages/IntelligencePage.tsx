@@ -1,23 +1,62 @@
 import { useEffect, useState } from 'react';
-import { SearchX } from 'lucide-react';
-import { usePatterns, useRunPatternAnalysis } from '../hooks/useIntelligence';
+import { Download, Loader2, RefreshCw, SearchX, ShieldCheck } from 'lucide-react';
+import { usePatterns, useRunPatternAnalysis, useCompliance, useRunComplianceCheck } from '../hooks/useIntelligence';
+import { exportComplianceReport } from '../api/intelligence';
 import PatternCard from '../components/intelligence/PatternCard';
 import RunButton from '../components/intelligence/RunButton';
+import GapCard from '../components/intelligence/GapCard';
+import ComplianceSummaryBoxes from '../components/intelligence/ComplianceSummary';
 import EmptyState from '../components/shared/EmptyState';
 import ErrorBanner from '../components/shared/ErrorBanner';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
+import type { ComplianceVerdict } from '../types/intelligence';
 
-const ANALYSIS_POLL_TIMEOUT_MS = 45_000;
+const POLL_TIMEOUT_MS = 45_000;
+const POLL_INTERVAL_MS = 4_000;
+
+type Tab = 'patterns' | 'compliance';
 
 export default function IntelligencePage() {
+  const [tab, setTab] = useState<Tab>('patterns');
+
+  return (
+    <div className="pt-20 px-6 pb-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-semibold text-text-primary">Intelligence</h1>
+
+      <div className="flex gap-6 mt-4 border-b border-border-default overflow-x-auto">
+        <TabButton label="Failure Patterns" active={tab === 'patterns'} onClick={() => setTab('patterns')} />
+        <TabButton label="Compliance Gaps" active={tab === 'compliance'} onClick={() => setTab('compliance')} />
+      </div>
+
+      <div className="mt-6">{tab === 'patterns' ? <FailurePatternsTab /> : <ComplianceGapsTab />}</div>
+    </div>
+  );
+}
+
+function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-sm pb-3 -mb-px border-b-2 whitespace-nowrap min-h-[44px] transition-fast ${
+        active
+          ? 'text-text-primary font-semibold border-accent-teal'
+          : 'text-text-secondary font-medium border-transparent hover:text-text-primary'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function FailurePatternsTab() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { data: patterns, isLoading, error, refetch } = usePatterns();
   const runAnalysis = useRunPatternAnalysis();
 
   useEffect(() => {
     if (!isAnalyzing) return;
-    const interval = setInterval(refetch, 4000);
-    const timeout = setTimeout(() => setIsAnalyzing(false), ANALYSIS_POLL_TIMEOUT_MS);
+    const interval = setInterval(refetch, POLL_INTERVAL_MS);
+    const timeout = setTimeout(() => setIsAnalyzing(false), POLL_TIMEOUT_MS);
     return () => {
       clearInterval(interval);
       clearTimeout(timeout);
@@ -29,13 +68,14 @@ export default function IntelligencePage() {
     runAnalysis.mutate();
   };
 
-  const lastRunAt = patterns?.reduce<string | null>(
-    (latest, p) => (!latest || (p.last_run_at && p.last_run_at > latest) ? p.last_run_at : latest),
-    null,
-  ) ?? null;
+  const lastRunAt =
+    patterns?.reduce<string | null>(
+      (latest, p) => (!latest || (p.last_run_at && p.last_run_at > latest) ? p.last_run_at : latest),
+      null,
+    ) ?? null;
 
   return (
-    <div className="pt-20 px-6 pb-6 max-w-4xl mx-auto">
+    <>
       <RunButton onRun={handleRun} isRunning={isAnalyzing} lastRunAt={lastRunAt} />
 
       <div className="mt-6 flex flex-col gap-4">
@@ -54,6 +94,137 @@ export default function IntelligencePage() {
           <PatternCard key={pattern.id} pattern={pattern} />
         ))}
       </div>
+    </>
+  );
+}
+
+function ComplianceGapsTab() {
+  const [isChecking, setIsChecking] = useState(false);
+  const [verdictFilter, setVerdictFilter] = useState<'all' | ComplianceVerdict>('all');
+  const [regulationFilter, setRegulationFilter] = useState<string>('all');
+  const { data, isLoading, error, refetch } = useCompliance();
+  const runCheck = useRunComplianceCheck();
+
+  useEffect(() => {
+    if (!isChecking) return;
+    const interval = setInterval(refetch, POLL_INTERVAL_MS);
+    const timeout = setTimeout(() => setIsChecking(false), POLL_TIMEOUT_MS);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [isChecking, refetch]);
+
+  const handleRun = () => {
+    setIsChecking(true);
+    runCheck.mutate();
+  };
+
+  const handleExport = async () => {
+    const blob = await exportComplianceReport();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `CorpusForge_Compliance_Report_${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const gaps = data?.gaps ?? [];
+  const regulations = Array.from(new Set(gaps.map((g) => g.regulation_ref))).sort();
+  const filteredGaps = gaps.filter(
+    (g) =>
+      (verdictFilter === 'all' || g.verdict === verdictFilter) &&
+      (regulationFilter === 'all' || g.regulation_ref === regulationFilter),
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-text-primary">Compliance Gaps</h2>
+          <p className="text-xs text-text-muted mt-1">
+            {data?.summary.last_run_at
+              ? `Last run: ${new Date(data.summary.last_run_at).toLocaleString()}`
+              : 'Analysis has not been run yet'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRun}
+            disabled={isChecking}
+            className="inline-flex items-center gap-2 bg-accent-orange hover:bg-accent-orange-bright disabled:opacity-60 text-white font-semibold text-sm px-4 py-2 rounded-md transition-fast min-h-[44px]"
+          >
+            {isChecking ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            {isChecking ? 'Checking…' : 'Re-run'}
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={gaps.length === 0}
+            className="inline-flex items-center gap-2 border border-accent-teal text-accent-teal hover:bg-[#0F2822] disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm px-4 py-2 rounded-md transition-fast min-h-[44px]"
+          >
+            <Download size={16} />
+            Export Report
+          </button>
+        </div>
+      </div>
+
+      {isLoading && <LoadingSpinner />}
+      {error && <ErrorBanner message={error.message} />}
+
+      {!isLoading && !error && data && (
+        <>
+          <ComplianceSummaryBoxes summary={data.summary} activeVerdict={verdictFilter} onSelectVerdict={setVerdictFilter} />
+
+          {gaps.length === 0 && (
+            <EmptyState
+              icon={ShieldCheck}
+              heading="No compliance check run yet"
+              description="Run the compliance check to compare regulation documents against plant procedures."
+              actionLabel="Re-run"
+              onAction={handleRun}
+            />
+          )}
+
+          {gaps.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={regulationFilter}
+                onChange={(e) => setRegulationFilter(e.target.value)}
+                className="bg-bg-surface border border-border-default rounded-md px-3 py-2 text-sm text-text-primary min-h-[44px]"
+              >
+                <option value="all">All regulations</option>
+                {regulations.map((ref) => (
+                  <option key={ref} value={ref}>
+                    {ref}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={verdictFilter}
+                onChange={(e) => setVerdictFilter(e.target.value as 'all' | ComplianceVerdict)}
+                className="bg-bg-surface border border-border-default rounded-md px-3 py-2 text-sm text-text-primary min-h-[44px]"
+              >
+                <option value="all">All verdicts</option>
+                <option value="compliant">Compliant</option>
+                <option value="gap">Gap</option>
+                <option value="outdated">Outdated</option>
+                <option value="undetermined">Undetermined</option>
+              </select>
+            </div>
+          )}
+
+          {gaps.length > 0 && filteredGaps.length === 0 && (
+            <p className="text-sm text-text-muted text-center py-8">No gaps match the selected filters.</p>
+          )}
+
+          <div className="flex flex-col gap-4">
+            {filteredGaps.map((gap) => (
+              <GapCard key={gap.id} gap={gap} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

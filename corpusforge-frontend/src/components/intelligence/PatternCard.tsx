@@ -5,6 +5,7 @@ import CitationChip from '../shared/CitationChip';
 import PatternDetail from './PatternDetail';
 
 const ACCENT_BORDER: Record<Severity, string> = {
+  'Audit-Critical': 'border-l-red-400',
   Critical: 'border-l-red-400',
   High: 'border-l-orange-400',
   Medium: 'border-l-amber-400',

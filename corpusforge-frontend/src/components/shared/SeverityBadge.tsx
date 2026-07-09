@@ -1,6 +1,7 @@
 import type { Severity } from '../../types/intelligence';
 
 const STYLES: Record<Severity, { pill: string; dot: string }> = {
+  'Audit-Critical': { pill: 'bg-red-950 text-red-300 font-bold', dot: 'bg-red-500' },
   Critical: { pill: 'bg-red-900/50 text-red-400', dot: 'bg-red-400' },
   High: { pill: 'bg-orange-900/50 text-orange-400', dot: 'bg-orange-400' },
   Medium: { pill: 'bg-amber-900/50 text-amber-400', dot: 'bg-amber-400' },
