@@ -1,29 +1,8 @@
 import { Trash2 } from 'lucide-react';
-import type { Document, DocumentType } from '../../types/document';
+import type { Document } from '../../types/document';
 import { useDocumentStatus } from '../../hooks/useDocuments';
+import { DOC_TYPE_LABELS, DOC_TYPE_PILL_CLASSES } from '../../utils/constants';
 import StatusIndicator from './StatusIndicator';
-
-const TYPE_PILL_CLASSES: Record<DocumentType, string> = {
-  manual: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  sop: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-  incident: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-  regulation: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
-  work_order: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
-  inspection: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  image: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-  other: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-};
-
-const TYPE_LABELS: Record<DocumentType, string> = {
-  manual: 'Manual',
-  sop: 'SOP',
-  incident: 'Incident',
-  regulation: 'Regulation',
-  work_order: 'Work Order',
-  inspection: 'Inspection',
-  image: 'Image',
-  other: 'Other',
-};
 
 interface DocumentRowProps {
   document: Document;
@@ -45,8 +24,8 @@ export default function DocumentRow({ document, onDelete }: DocumentRowProps) {
       <td className="px-4 py-3 text-sm text-text-primary max-w-[240px] truncate">{document.filename}</td>
       <td className="px-4 py-3">
         {document.doc_type ? (
-          <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-sm ${TYPE_PILL_CLASSES[document.doc_type]}`}>
-            {TYPE_LABELS[document.doc_type]}
+          <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-sm ${DOC_TYPE_PILL_CLASSES[document.doc_type]}`}>
+            {DOC_TYPE_LABELS[document.doc_type]}
           </span>
         ) : (
           <span className="text-sm text-text-muted">—</span>
