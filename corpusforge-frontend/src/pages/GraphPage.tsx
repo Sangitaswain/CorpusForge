@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Filter, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import type { ForceGraphMethods } from 'react-force-graph-2d';
 import type { GraphNode, NodeType } from '../types/graph';
 import { useGraph } from '../hooks/useGraph';
 import GraphCanvas from '../components/graph/GraphCanvas';
+import GraphControls from '../components/graph/GraphControls';
 import GraphFilters from '../components/graph/GraphFilters';
+import GraphLegend from '../components/graph/GraphLegend';
 import GraphSearch from '../components/graph/GraphSearch';
 import NodeDetailPanel from '../components/graph/NodeDetailPanel';
 import EmptyState from '../components/shared/EmptyState';
@@ -19,6 +22,7 @@ export default function GraphPage() {
   const { data, isLoading, error } = useGraph(focus || undefined);
   const navigate = useNavigate();
   const canvasWrapRef = useRef<HTMLDivElement>(null);
+  const graphRef = useRef<ForceGraphMethods | undefined>(undefined);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
   useEffect(() => {
@@ -56,7 +60,7 @@ export default function GraphPage() {
   const focusNodeId = focus && data ? data.nodes.find((n) => n.name.toLowerCase() === focus.toLowerCase())?.id : undefined;
 
   return (
-    <div className="pt-14 h-dvh flex flex-col">
+    <div className="h-full flex flex-col">
       <div className="px-4 sm:px-6 py-3 border-b border-border-subtle">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <h1 className="text-2xl font-semibold text-text-primary">Knowledge Graph</h1>
@@ -99,7 +103,7 @@ export default function GraphPage() {
           </div>
         ) : (
           <>
-            <div ref={canvasWrapRef} className="flex-1 min-w-0 bg-bg-void">
+            <div ref={canvasWrapRef} className="graph-canvas-wrapper relative flex-1 min-w-0 bg-bg-void">
               <GraphCanvas
                 data={filteredData}
                 onNodeClick={handleNodeClick}
@@ -107,7 +111,10 @@ export default function GraphPage() {
                 selectedNodeId={selectedNodeId}
                 width={canvasSize.width}
                 height={canvasSize.height}
+                graphRef={graphRef}
               />
+              <GraphLegend />
+              <GraphControls graphRef={graphRef} />
             </div>
             {selectedNodeId && (
               <NodeDetailPanel entityId={selectedNodeId} onClose={() => setSelectedNodeId(null)} />
