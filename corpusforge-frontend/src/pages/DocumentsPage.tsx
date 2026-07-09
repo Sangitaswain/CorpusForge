@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { FolderOpen } from 'lucide-react';
-import type { Document } from '../types/document';
+import type { Document, DocumentStatus } from '../types/document';
 import { useDeleteDocument, useDocuments, useUploadDocument } from '../hooks/useDocuments';
 import DocumentTable from '../components/documents/DocumentTable';
 import UploadZone from '../components/documents/UploadZone';
+import StatusTabs from '../components/documents/StatusTabs';
+import DocumentTypeBreakdown from '../components/dashboard/DocumentTypeBreakdown';
 import EmptyState from '../components/shared/EmptyState';
 import ErrorBanner from '../components/shared/ErrorBanner';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
+import { groupByDocType } from '../utils/dashboardStats';
 
 export default function DocumentsPage() {
   const { data: documents, isLoading, error } = useDocuments();
@@ -14,6 +17,15 @@ export default function DocumentsPage() {
   const remove = useDeleteDocument();
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Document | null>(null);
+  const [statusFilter, setStatusFilter] = useState<DocumentStatus | 'all'>('all');
+
+  const filteredDocuments = (documents ?? []).filter(
+    (doc) =>
+      statusFilter === 'all' ||
+      doc.status === statusFilter ||
+      (statusFilter === 'processing' && doc.status === 'queued'),
+  );
+  const docTypeCounts = groupByDocType(documents ?? []);
 
   const handleFiles = (files: File[]) => {
     setUploadError(null);
@@ -40,6 +52,11 @@ export default function DocumentsPage() {
         <UploadZone onFiles={handleFiles} />
       </div>
 
+      <div className="mt-6 flex flex-col gap-3">
+        <StatusTabs active={statusFilter} onChange={setStatusFilter} />
+        <DocumentTypeBreakdown counts={docTypeCounts} />
+      </div>
+
       {uploadError && (
         <div className="mt-4">
           <ErrorBanner message={uploadError} onDismiss={() => setUploadError(null)} />
@@ -58,7 +75,7 @@ export default function DocumentsPage() {
             description="Upload your first document to get started."
           />
         ) : (
-          <DocumentTable documents={documents} onDelete={setPendingDelete} />
+          <DocumentTable documents={filteredDocuments} onDelete={setPendingDelete} />
         )}
       </div>
 
