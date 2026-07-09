@@ -1,6 +1,9 @@
 # Project documentation (local only)
 docs/
 
+# Demo/test corpus documents (local only)
+corpus/
+
 # Python
 __pycache__/
 *.py[cod]
