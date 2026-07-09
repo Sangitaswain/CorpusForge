@@ -50,7 +50,7 @@ export default function PatternCard({ pattern }: { pattern: Pattern }) {
         </div>
       )}
 
-      <div className="bg-[#0F2822] border-l-2 border-accent-teal p-3 text-xs text-text-secondary mt-4 rounded">
+      <div className="bg-accent-teal-wash border-l-2 border-accent-teal p-3 text-xs text-text-secondary mt-4 rounded">
         <span className="font-medium text-text-primary">Recommendation: </span>
         {pattern.recommendation}
       </div>

@@ -23,7 +23,7 @@ export default function IntelligencePage() {
   const [tab, setTab] = useState<Tab>('patterns');
 
   return (
-    <div className="pt-20 px-6 pb-6 max-w-4xl mx-auto">
+    <div className="pt-6 px-6 pb-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-semibold text-text-primary">Intelligence</h1>
 
       <div className="flex gap-6 mt-4 border-b border-border-default overflow-x-auto">
@@ -164,7 +164,7 @@ function ComplianceGapsTab() {
           <button
             onClick={handleExport}
             disabled={gaps.length === 0}
-            className="inline-flex items-center gap-2 border border-accent-teal text-accent-teal hover:bg-[#0F2822] disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm px-4 py-2 rounded-md transition-fast min-h-[44px]"
+            className="inline-flex items-center gap-2 border border-accent-teal text-accent-teal hover:bg-accent-teal-wash disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm px-4 py-2 rounded-md transition-fast min-h-[44px]"
           >
             <Download size={16} />
             Export Report

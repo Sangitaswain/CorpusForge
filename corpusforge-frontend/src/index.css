@@ -4,43 +4,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Light theme is the default (unclassed html) — html.dark overrides below.
+   Values are space-separated RGB triplets so Tailwind's rgb(var(...) / <alpha-value>)
+   pattern in tailwind.config.ts can still support opacity modifiers like bg-bg-void/80. */
 :root {
-  color-scheme: dark;
-}
-
-html, html.dark {
-  --color-bg-void:       #070E0D;
-  --color-bg-base:       #0C1715;
-  --color-bg-surface:    #122220;
-  --color-bg-elevated:   #192F29;
-  --color-border-subtle: #1A302A;
-  --color-border:        #224038;
-  --color-text-primary:  #E8F0EE;
-  --color-text-secondary:#93ADA8;
-  --color-text-muted:    #4F7068;
-  --color-accent-teal:   #14B8A6;
-  --color-accent-orange: #EA580C;
-}
-
-html.light {
   color-scheme: light;
-  --color-bg-void:       #FFFFFF;
-  --color-bg-base:       #F6FAF9;
-  --color-bg-surface:    #FFFFFF;
-  --color-bg-elevated:   #FFFFFF;
-  --color-border-subtle: #DFF0EB;
-  --color-border:        #C5DDD7;
-  --color-text-primary:  #0B1F1C;
-  --color-text-secondary:#3D6B61;
-  --color-text-muted:    #7A9E98;
-  --color-accent-teal:   #0D9488;
-  --color-accent-orange: #EA580C;
+
+  --color-bg-void: 255 255 255;
+  --color-bg-base: 246 250 249;
+  --color-bg-surface: 255 255 255;
+  --color-bg-elevated: 255 255 255;
+  --color-bg-overlay: 235 245 242;
+
+  --color-border-subtle: 223 240 235;
+  --color-border-default: 197 221 215;
+  --color-border-strong: 155 190 183;
+
+  --color-text-primary: 11 31 28;
+  --color-text-secondary: 61 107 97;
+  --color-text-muted: 122 158 152;
+  --color-text-disabled: 176 201 197;
+
+  --color-accent-teal: 13 148 136;
+  --color-accent-teal-dim: 204 251 241;
+  --color-accent-teal-bright: 15 118 110;
+  --color-accent-teal-wash: 235 245 242;
+  --color-accent-orange: 234 88 12;
+  --color-accent-orange-bright: 249 115 22;
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --color-bg-void: 7 14 13;
+  --color-bg-base: 12 23 21;
+  --color-bg-surface: 18 34 32;
+  --color-bg-elevated: 25 47 41;
+  --color-bg-overlay: 31 57 50;
+
+  --color-border-subtle: 26 48 42;
+  --color-border-default: 34 64 56;
+  --color-border-strong: 45 82 72;
+
+  --color-text-primary: 232 240 238;
+  --color-text-secondary: 147 173 168;
+  --color-text-muted: 79 112 104;
+  --color-text-disabled: 43 74 68;
+
+  --color-accent-teal: 20 184 166;
+  --color-accent-teal-dim: 15 118 110;
+  --color-accent-teal-bright: 45 212 191;
+  --color-accent-teal-wash: 15 40 34;
+  --color-accent-orange: 234 88 12;
+  --color-accent-orange-bright: 249 115 22;
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: var(--color-bg-base);
-  color: var(--color-text-primary);
+  background-color: rgb(var(--color-bg-base));
+  color: rgb(var(--color-text-primary));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
@@ -60,9 +82,9 @@ body {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #224038 transparent;
+  scrollbar-color: rgb(var(--color-border-default)) transparent;
 }
 *::-webkit-scrollbar { width: 6px; height: 6px; }
 *::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb { background: #224038; border-radius: 3px; }
-*::-webkit-scrollbar-thumb:hover { background: #2D5248; }
+*::-webkit-scrollbar-thumb { background: rgb(var(--color-border-default)); border-radius: 3px; }
+*::-webkit-scrollbar-thumb:hover { background: rgb(var(--color-border-strong)); }

@@ -32,7 +32,7 @@ export default function UploadZone({ onFiles }: UploadZoneProps) {
       onDrop={handleDrop}
       className={`rounded-xl p-10 text-center cursor-pointer transition-base border-2 ${
         dragOver
-          ? 'border-solid border-accent-teal bg-[#0F2822]'
+          ? 'border-solid border-accent-teal bg-accent-teal-wash'
           : 'border-dashed border-border-default bg-bg-surface'
       }`}
     >

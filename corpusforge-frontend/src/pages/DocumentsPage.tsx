@@ -33,7 +33,7 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="pt-20 px-4 sm:px-6 pb-10 max-w-[1280px] mx-auto">
+    <div className="pt-6 px-4 sm:px-6 pb-10 max-w-[1280px] mx-auto">
       <h1 className="text-2xl font-semibold text-text-primary">Documents</h1>
 
       <div className="mt-6">
@@ -79,7 +79,7 @@ export default function DocumentsPage() {
               </button>
               <button
                 onClick={confirmDelete}
-                className="bg-red-900/50 border border-red-600 text-red-400 hover:bg-red-900 px-4 py-2 rounded-md transition-fast min-h-[44px]"
+                className="bg-red-100 border border-red-600 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-400 dark:hover:bg-red-900 px-4 py-2 rounded-md transition-fast min-h-[44px]"
               >
                 Delete
               </button>

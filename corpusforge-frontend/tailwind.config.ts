@@ -23,27 +23,33 @@ export default {
         'hero':['56px', '64px'],
       },
       colors: {
-        'bg-void':     '#070E0D',
-        'bg-base':     '#0C1715',
-        'bg-surface':  '#122220',
-        'bg-elevated': '#192F29',
-        'bg-overlay':  '#1F3932',
+        // Theme-reactive tokens — actual RGB values come from the CSS custom
+        // properties in index.css (:root = light default, html.dark = dark
+        // override). The rgb(var(...) / <alpha-value>) form keeps Tailwind's
+        // opacity modifiers (e.g. bg-bg-void/80) working.
+        'bg-void':     'rgb(var(--color-bg-void) / <alpha-value>)',
+        'bg-base':     'rgb(var(--color-bg-base) / <alpha-value>)',
+        'bg-surface':  'rgb(var(--color-bg-surface) / <alpha-value>)',
+        'bg-elevated': 'rgb(var(--color-bg-elevated) / <alpha-value>)',
+        'bg-overlay':  'rgb(var(--color-bg-overlay) / <alpha-value>)',
 
-        'border-subtle':  '#1A302A',
-        'border-default': '#224038',
-        'border-strong':  '#2D5248',
+        'border-subtle':  'rgb(var(--color-border-subtle) / <alpha-value>)',
+        'border-default': 'rgb(var(--color-border-default) / <alpha-value>)',
+        'border-strong':  'rgb(var(--color-border-strong) / <alpha-value>)',
 
-        'text-primary':   '#E8F0EE',
-        'text-secondary': '#93ADA8',
-        'text-muted':     '#4F7068',
-        'text-disabled':  '#2B4A44',
+        'text-primary':   'rgb(var(--color-text-primary) / <alpha-value>)',
+        'text-secondary': 'rgb(var(--color-text-secondary) / <alpha-value>)',
+        'text-muted':     'rgb(var(--color-text-muted) / <alpha-value>)',
+        'text-disabled':  'rgb(var(--color-text-disabled) / <alpha-value>)',
 
-        'accent-teal':         '#14B8A6',
-        'accent-teal-dim':     '#0F766E',
-        'accent-teal-bright':  '#2DD4BF',
-        'accent-orange':       '#EA580C',
-        'accent-orange-bright':'#F97316',
+        'accent-teal':         'rgb(var(--color-accent-teal) / <alpha-value>)',
+        'accent-teal-dim':     'rgb(var(--color-accent-teal-dim) / <alpha-value>)',
+        'accent-teal-bright':  'rgb(var(--color-accent-teal-bright) / <alpha-value>)',
+        'accent-teal-wash':    'rgb(var(--color-accent-teal-wash) / <alpha-value>)',
+        'accent-orange':       'rgb(var(--color-accent-orange) / <alpha-value>)',
+        'accent-orange-bright':'rgb(var(--color-accent-orange-bright) / <alpha-value>)',
 
+        // Node type colours (Knowledge Graph) — fixed across themes by design.
         'node-equipment':  '#3B82F6',
         'node-incident':   '#EF4444',
         'node-procedure':  '#10B981',

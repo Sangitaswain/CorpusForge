@@ -13,7 +13,7 @@ export default function DocumentViewerPage() {
 
   if (!id) {
     return (
-      <div className="pt-20 px-6 max-w-3xl mx-auto">
+      <div className="pt-6 px-6 max-w-3xl mx-auto">
         <ErrorBanner message="No document selected." />
       </div>
     );
@@ -23,7 +23,7 @@ export default function DocumentViewerPage() {
   const fileUrl = getDocumentFileUrl(id, page ? Number(page) : undefined);
 
   return (
-    <div className="pt-14 h-dvh flex flex-col">
+    <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 bg-bg-void border-b border-border-default px-4 sm:px-6 py-2">
         <button
           onClick={() => navigate(-1)}
