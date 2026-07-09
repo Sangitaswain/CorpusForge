@@ -11,7 +11,10 @@ import ErrorBanner from '../components/shared/ErrorBanner';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import type { ComplianceVerdict } from '../types/intelligence';
 
-const POLL_TIMEOUT_MS = 45_000;
+// Gemini free tier is 15 req/min, so a run's wall-clock time scales with how
+// many rate-limited calls it makes (one per regulation clause, or per pattern
+// cluster) — a handful of clauses/clusters can already exceed a minute.
+const POLL_TIMEOUT_MS = 180_000;
 const POLL_INTERVAL_MS = 4_000;
 
 type Tab = 'patterns' | 'compliance';
