@@ -4,14 +4,14 @@ import { useDocumentStatus } from '../../hooks/useDocuments';
 import StatusIndicator from './StatusIndicator';
 
 const TYPE_PILL_CLASSES: Record<DocumentType, string> = {
-  manual: 'bg-blue-900/40 text-blue-300',
-  sop: 'bg-emerald-900/40 text-emerald-300',
-  incident: 'bg-red-900/40 text-red-300',
-  regulation: 'bg-violet-900/40 text-violet-300',
-  work_order: 'bg-orange-900/40 text-orange-300',
-  inspection: 'bg-amber-900/40 text-amber-300',
-  image: 'bg-slate-800 text-slate-300',
-  other: 'bg-slate-800 text-slate-300',
+  manual: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  sop: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  incident: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  regulation: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+  work_order: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+  inspection: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  image: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  other: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
 };
 
 const TYPE_LABELS: Record<DocumentType, string> = {

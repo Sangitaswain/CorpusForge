@@ -17,7 +17,7 @@ export default function GapCard({ gap }: { gap: ComplianceGap }) {
       <p className="text-sm text-text-secondary mt-3">{gap.explanation}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-        <div className="bg-red-900/20 rounded-lg p-3">
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
           <p className="text-2xs font-medium text-text-muted uppercase tracking-wider">Regulation requires</p>
           <p className="text-sm text-text-primary mt-1.5">{gap.clause_text}</p>
           {gap.regulation_citation && (
@@ -43,7 +43,7 @@ export default function GapCard({ gap }: { gap: ComplianceGap }) {
       </div>
 
       {gap.recommendation && (
-        <div className="bg-[#0F2822] border-l-2 border-accent-teal p-3 text-xs text-text-secondary mt-4 rounded">
+        <div className="bg-accent-teal-wash border-l-2 border-accent-teal p-3 text-xs text-text-secondary mt-4 rounded">
           <span className="font-medium text-text-primary">Recommendation: </span>
           {gap.recommendation}
         </div>
