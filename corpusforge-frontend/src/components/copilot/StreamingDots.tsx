@@ -1,6 +1,6 @@
 export default function StreamingDots() {
   return (
-    <div className="flex items-center gap-1.5 py-1" aria-label="Copilot is thinking">
+    <div className="flex items-center gap-1.5 py-1" aria-label="Ask Forge is thinking">
       {[0, 1, 2].map((i) => (
         <span
           key={i}
