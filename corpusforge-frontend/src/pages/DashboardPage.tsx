@@ -68,7 +68,7 @@ export default function DashboardPage() {
               icon={ShieldCheck}
               caption={complianceScore === null ? 'Run a compliance check to see this' : undefined}
             />
-            <KPICard title="Active Alerts" value="—" icon={Bell} caption="Available after Step 8" />
+            <KPICard title="Active Alerts" value="—" icon={Bell} caption="Coming soon" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

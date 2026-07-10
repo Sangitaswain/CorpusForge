@@ -8,7 +8,7 @@ export default function AlertsPage() {
       <EmptyState
         icon={BellOff}
         heading="No alerts yet"
-        description="Alerts will appear here once pattern matches, outdated procedures, and coverage gaps are detected automatically — available after Step 8."
+        description="Alerts will appear here once pattern matches, outdated procedures, and coverage gaps are detected automatically. Coming soon."
       />
     </div>
   );
