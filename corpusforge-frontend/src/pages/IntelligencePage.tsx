@@ -79,6 +79,9 @@ function FailurePatternsTab() {
 
   return (
     <>
+      <p className="text-sm text-text-muted mb-4">
+        Finds recurring root causes across incident reports — even when no single report says the cause outright.
+      </p>
       <RunButton onRun={handleRun} isRunning={isAnalyzing} lastRunAt={lastRunAt} />
 
       <div className="mt-6 flex flex-col gap-4">
@@ -150,6 +153,9 @@ function ComplianceGapsTab() {
             {data?.summary.last_run_at
               ? `Last run: ${new Date(data.summary.last_run_at).toLocaleString()}`
               : 'Analysis has not been run yet'}
+          </p>
+          <p className="text-sm text-text-muted mt-2">
+            Compares your procedures against regulations and flags where they don't match.
           </p>
         </div>
         <div className="flex items-center gap-2">
