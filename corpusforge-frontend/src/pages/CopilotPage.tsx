@@ -59,7 +59,7 @@ export default function CopilotPage() {
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
-          <h1 className="text-2xl font-semibold text-text-primary">Copilot</h1>
+          <h1 className="text-2xl font-semibold text-text-primary">Ask Forge</h1>
           {messages.length === 0 && !ask.isPending ? (
             <ExampleQuestions onSelect={handleSubmit} />
           ) : (

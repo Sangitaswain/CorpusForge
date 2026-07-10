@@ -18,7 +18,7 @@ import { useTheme } from '../../hooks/useTheme';
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/documents', label: 'Documents', icon: FileText },
-  { to: '/copilot', label: 'Copilot', icon: MessageSquare },
+  { to: '/ask-forge', label: 'Ask Forge', icon: MessageSquare },
   { to: '/graph', label: 'Graph', icon: Share2 },
   { to: '/intelligence', label: 'Intelligence', icon: Cpu },
   { to: '/alerts', label: 'Alerts', icon: Bell },

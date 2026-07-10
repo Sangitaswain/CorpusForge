@@ -18,7 +18,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
-            <Route path="/copilot" element={<CopilotPage />} />
+            <Route path="/ask-forge" element={<CopilotPage />} />
             <Route path="/graph" element={<GraphPage />} />
             <Route path="/intelligence" element={<IntelligencePage />} />
             <Route path="/alerts" element={<AlertsPage />} />
