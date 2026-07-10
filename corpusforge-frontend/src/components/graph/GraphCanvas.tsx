@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods, NodeObject } from 'react-force-graph-2d';
@@ -41,6 +41,12 @@ export default function GraphCanvas({
   const { theme } = useTheme();
   const palette = CANVAS_PALETTE[theme];
 
+  const hasAutoFitted = useRef(false);
+
+  useEffect(() => {
+    hasAutoFitted.current = false;
+  }, [data]);
+
   useEffect(() => {
     // Spread nodes out more than the library default so labels stay legible
     const fg = graphRef.current;
@@ -72,6 +78,12 @@ export default function GraphCanvas({
       nodeRelSize={6}
       linkColor={() => palette.link}
       linkWidth={1.5}
+      onEngineStop={() => {
+        if (!hasAutoFitted.current) {
+          graphRef.current?.zoomToFit(400, 60);
+          hasAutoFitted.current = true;
+        }
+      }}
       onNodeClick={(node) => onNodeClick(node as CanvasNode)}
       nodeCanvasObject={(node, ctx, globalScale) => {
         const n = node as CanvasNode;

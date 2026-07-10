@@ -70,6 +70,9 @@ export default function GraphPage() {
             </span>
           )}
         </div>
+        <p className="text-sm text-text-muted mt-1">
+          Every entity extracted from your documents, connected by how they relate — trace a failure back to the work order and technician behind it.
+        </p>
         <div className="flex flex-wrap items-center gap-3 mt-3">
           <GraphSearch onSearch={setFocus} activeFocus={focus} />
           <GraphFilters hiddenTypes={hiddenTypes} onToggle={toggleType} />
