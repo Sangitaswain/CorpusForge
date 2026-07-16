@@ -37,4 +37,5 @@ export interface ComplianceGap {
   procedure_text: string | null;
   regulation_citation: Citation | null;
   procedure_citation: Citation | null;
+  created_at: string | null;
 }
