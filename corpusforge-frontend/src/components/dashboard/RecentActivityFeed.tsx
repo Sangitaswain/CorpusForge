@@ -13,9 +13,9 @@ export default function RecentActivityFeed({ events }: { events: ActivityEvent[]
   }
 
   return (
-    <ul className="flex flex-col gap-4 p-3">
+    <ul className="flex flex-col divide-y divide-border-subtle">
       {events.map((event) => (
-        <li key={event.id} className="flex items-start gap-3">
+        <li key={event.id} className="flex items-start gap-3 px-1 py-3">
           <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${DOT_STYLES[event.tone]}`} />
           <div className="min-w-0">
             <p className="text-sm text-text-primary truncate">{event.label}</p>

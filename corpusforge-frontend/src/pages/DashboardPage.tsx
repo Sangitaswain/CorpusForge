@@ -57,7 +57,7 @@ export default function DashboardPage() {
   const risk = countRiskBySeverity(pats, gaps);
   const criticalCount = countCriticalFindings(pats, gaps);
 
-  const topFindings = useMemo(() => getTopFindings(pats, gaps, 3), [pats, gaps]);
+  const topFindings = useMemo(() => getTopFindings(pats, gaps, 5), [pats, gaps]);
   const recentActivity = useMemo(() => getRecentActivity(docs, pats, gaps, 5), [docs, pats, gaps]);
 
   const lastSyncedAt =
@@ -69,7 +69,7 @@ export default function DashboardPage() {
   return (
     <div className="pt-6 px-4 sm:px-6 pb-10 max-w-[1280px] mx-auto">
       <h1 className="text-2xl font-semibold text-text-primary">{getGreeting()}, Operator</h1>
-      <p className="text-sm text-text-muted mt-1">
+      <p className={`text-sm mt-1 ${criticalCount > 0 ? 'font-medium text-red-500' : 'text-text-muted'}`}>
         {criticalCount > 0
           ? `${criticalCount} critical issue${criticalCount === 1 ? '' : 's'} need${criticalCount === 1 ? 's' : ''} your attention.`
           : 'All systems normal.'}
@@ -90,12 +90,12 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6 mt-6">
           <SystemStatusStrip processingCount={processingCount} failedCount={failedCount} lastSyncedAt={lastSyncedAt} />
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <KPICard
               title="Documents"
               value={totalDocuments}
               icon={FileText}
-              caption={recentUploads > 0 ? `+${recentUploads} in the last 24h` : undefined}
+              caption={recentUploads > 0 ? `+${recentUploads} in the last 24h` : 'No uploads in the last 24h'}
             />
             <KPICard
               title="AI Knowledge"
@@ -107,6 +107,7 @@ export default function DashboardPage() {
               title="Operational Risks"
               value={risk.total}
               icon={AlertTriangle}
+              valueTone={risk.critical > 0 ? 'critical' : 'default'}
               caption={
                 totalDocuments === 0
                   ? 'Upload documents to get started'
@@ -128,22 +129,36 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-bg-surface border border-border-default rounded-lg p-5">
-              <h2 className="text-sm font-semibold text-text-primary">AI Insights</h2>
-              <div className="mt-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div
+              className={`bg-bg-surface rounded-lg p-5 border ${
+                topFindings.length > 0 ? 'border-border-default border-l-4 border-l-red-500' : 'border-border-default'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-lg font-semibold text-text-primary">AI Insights</h2>
+                  {topFindings.length > 0 && (
+                    <span className="text-xs text-text-muted">{topFindings.length} active</span>
+                  )}
+                </div>
+                <button onClick={() => navigate('/intelligence')} className="text-xs text-accent-teal hover:underline">
+                  View All →
+                </button>
+              </div>
+              <div className="mt-2">
                 <AiInsightsPanel findings={topFindings} />
               </div>
             </div>
 
             <div className="bg-bg-surface border border-border-default rounded-lg p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-text-primary">Recent Activity</h2>
+                <h2 className="text-lg font-semibold text-text-primary">Recent Activity</h2>
                 <button onClick={() => navigate('/documents')} className="text-xs text-accent-teal hover:underline">
                   View All →
                 </button>
               </div>
-              <div className="mt-3">
+              <div className="mt-2">
                 <RecentActivityFeed events={recentActivity} />
               </div>
             </div>

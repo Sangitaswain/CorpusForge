@@ -16,8 +16,8 @@ export default function QuickAskCard() {
   return (
     <div className="bg-bg-surface border border-border-default rounded-lg p-5">
       <div className="flex items-center gap-2">
-        <MessageSquare size={16} className="text-accent-teal" />
-        <h2 className="text-sm font-semibold text-text-primary">Ask CorpusForge</h2>
+        <MessageSquare size={18} className="text-accent-teal" />
+        <h2 className="text-lg font-semibold text-text-primary">Ask CorpusForge</h2>
       </div>
 
       <form

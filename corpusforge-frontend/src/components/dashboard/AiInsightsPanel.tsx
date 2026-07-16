@@ -21,14 +21,14 @@ export default function AiInsightsPanel({ findings }: { findings: Finding[] }) {
   }
 
   return (
-    <ul className="flex flex-col gap-1">
+    <ul className="flex flex-col divide-y divide-border-subtle">
       {findings.map((finding) => {
         const Icon = ICONS[finding.kind];
         return (
           <li key={finding.id}>
             <button
               onClick={() => navigate('/intelligence')}
-              className="w-full flex items-start gap-3 text-left p-3 rounded-md hover:bg-bg-elevated transition-fast min-h-[44px]"
+              className="w-full flex items-start gap-3 text-left px-1 py-3 hover:bg-bg-elevated transition-fast min-h-[44px]"
             >
               <Icon size={18} className={`mt-0.5 shrink-0 ${ICON_TONE[finding.kind]}`} />
               <div className="min-w-0 flex-1">
