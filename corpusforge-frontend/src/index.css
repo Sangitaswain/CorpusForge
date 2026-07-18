@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,61 +6,83 @@
 
 /* Light theme is the default (unclassed html) — html.dark overrides below.
    Values are space-separated RGB triplets so Tailwind's rgb(var(...) / <alpha-value>)
-   pattern in tailwind.config.ts can still support opacity modifiers like bg-bg-void/80. */
+   pattern in tailwind.config.ts can still support opacity modifiers like bg-bg-void/80.
+
+   Cool-neutral instrument-panel palette per Design_System_v1.md §6 — supersedes the former
+   warm cream/ink palette. Token names (bg-void, accent-teal, accent-orange, ...) are kept
+   for backward compatibility with existing class usage; only the underlying values change.
+   neutral-950/750 have no defined hex in Design_System_v1 (its scale stops at neutral-900) —
+   marked below as extrapolated so dark-mode tiers stay visually distinct. */
 :root {
   color-scheme: light;
 
-  --color-bg-void: 255 255 255;
-  --color-bg-base: 246 250 249;
-  --color-bg-surface: 255 255 255;
-  --color-bg-elevated: 255 255 255;
-  --color-bg-overlay: 235 245 242;
+  /* neutral-0 #FFFFFF · neutral-50 #F7F8F9 · neutral-100 #EEF0F2 · neutral-200 #E1E4E8 ·
+     neutral-300 #C7CCD1 · neutral-400 #A6ACB4 · neutral-500 #7C838C · neutral-600 #565D66 */
+  --color-bg-void: 255 255 255;       /* neutral-0 */
+  --color-bg-base: 247 248 249;       /* neutral-50 — page */
+  --color-bg-surface: 255 255 255;    /* neutral-0 — card/surface */
+  --color-bg-elevated: 238 240 242;   /* neutral-100 — elevated */
+  --color-bg-overlay: 225 228 232;    /* neutral-200 */
 
-  --color-border-subtle: 223 240 235;
-  --color-border-default: 197 221 215;
-  --color-border-strong: 155 190 183;
+  --color-border-subtle: 238 240 242;  /* neutral-100 */
+  --color-border-default: 225 228 232; /* neutral-200 */
+  --color-border-strong: 199 204 209;  /* neutral-300 */
 
-  --color-text-primary: 11 31 28;
-  --color-text-secondary: 61 107 97;
-  --color-text-muted: 122 158 152;
-  --color-text-disabled: 176 201 197;
+  --color-text-primary: 20 23 26;     /* neutral-900 #14171A */
+  --color-text-secondary: 86 93 102;  /* neutral-600 #565D66 */
+  --color-text-muted: 124 131 140;    /* neutral-500 #7C838C */
+  --color-text-disabled: 166 172 180; /* neutral-400 #A6ACB4 */
 
-  --color-accent-teal: 13 148 136;
-  --color-accent-teal-dim: 204 251 241;
-  --color-accent-teal-bright: 15 118 110;
-  --color-accent-teal-wash: 235 245 242;
-  --color-accent-orange: 234 88 12;
-  --color-accent-orange-bright: 249 115 22;
+  /* Interactive — the one signal reserved for anything clickable. */
+  --color-accent-teal: 33 89 166;        /* #2159A6 */
+  --color-accent-teal-dim: 222 232 245;  /* light blue-tint wash, selected/hover backgrounds */
+  --color-accent-teal-bright: 26 70 140; /* deeper blue, hover/emphasis */
+  --color-accent-teal-wash: 240 245 251; /* faint blue-tint wash */
+
+  /* Warning (amber, not orange — kept off the "interactive" hue on purpose). */
+  --color-accent-orange: 165 105 15;        /* #A5690F */
+  --color-accent-orange-bright: 138 84 10;  /* deeper amber, hover/emphasis */
+
+  /* Semantic — reserved exclusively for critical/warning/success, desaturated on purpose. */
+  --color-critical: 178 56 56;  /* #B23838 */
+  --color-warning: 165 105 15;  /* #A5690F */
+  --color-success: 46 122 78;   /* #2E7A4E */
 }
 
 html.dark {
   color-scheme: dark;
 
-  --color-bg-void: 7 14 13;
-  --color-bg-base: 12 23 21;
-  --color-bg-surface: 18 34 32;
-  --color-bg-elevated: 25 47 41;
-  --color-bg-overlay: 31 57 50;
+  /* neutral-800 #1F2328 · neutral-900 #14171A (darkest defined step) */
+  --color-bg-void: 20 23 26;          /* neutral-900 */
+  --color-bg-base: 17 20 23;          /* extrapolated neutral-950 — page */
+  --color-bg-surface: 20 23 26;       /* neutral-900 — card/surface */
+  --color-bg-elevated: 31 35 40;      /* neutral-800 — elevated */
+  --color-bg-overlay: 42 47 53;       /* extrapolated neutral-750 */
 
-  --color-border-subtle: 26 48 42;
-  --color-border-default: 34 64 56;
-  --color-border-strong: 45 82 72;
+  --color-border-subtle: 31 35 40;     /* neutral-800 */
+  --color-border-default: 48 53 60;    /* extrapolated neutral-750 */
+  --color-border-strong: 86 93 102;    /* neutral-600 */
 
-  --color-text-primary: 232 240 238;
-  --color-text-secondary: 147 173 168;
-  --color-text-muted: 79 112 104;
-  --color-text-disabled: 43 74 68;
+  --color-text-primary: 247 248 249;  /* neutral-50 — off-white, not pure white */
+  --color-text-secondary: 166 172 180; /* neutral-400 */
+  --color-text-muted: 124 131 140;     /* neutral-500 */
+  --color-text-disabled: 86 93 102;    /* neutral-600 */
 
-  --color-accent-teal: 20 184 166;
-  --color-accent-teal-dim: 15 118 110;
-  --color-accent-teal-bright: 45 212 191;
-  --color-accent-teal-wash: 15 40 34;
-  --color-accent-orange: 234 88 12;
-  --color-accent-orange-bright: 249 115 22;
+  --color-accent-teal: 108 160 224;      /* #6CA0E0 */
+  --color-accent-teal-dim: 26 40 64;     /* dark blue-tint wash */
+  --color-accent-teal-bright: 143 184 234; /* brighter blue, hover/emphasis */
+  --color-accent-teal-wash: 20 30 48;     /* faint dark blue-tint wash */
+
+  --color-accent-orange: 212 158 66;        /* #D49E42 */
+  --color-accent-orange-bright: 224 180 110; /* brighter amber, hover/emphasis */
+
+  --color-critical: 224 110 105; /* #E06E69 */
+  --color-warning: 212 158 66;   /* #D49E42 */
+  --color-success: 110 178 138;  /* #6EB28A */
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: rgb(var(--color-bg-base));
   color: rgb(var(--color-text-primary));
   -webkit-font-smoothing: antialiased;
@@ -69,7 +91,7 @@ body {
 }
 
 .font-mono, code, pre {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'IBM Plex Mono', 'Fira Code', monospace;
 }
 
 .streaming-dot:nth-child(1) { animation-delay: 0s; }

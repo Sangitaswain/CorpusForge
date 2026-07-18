@@ -6,8 +6,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'monospace'],
+        sans: ['IBM Plex Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'Fira Code', 'Cascadia Code', 'monospace'],
       },
       fontSize: {
         '2xs': ['11px', '16px'],
@@ -42,21 +42,32 @@ export default {
         'text-muted':     'rgb(var(--color-text-muted) / <alpha-value>)',
         'text-disabled':  'rgb(var(--color-text-disabled) / <alpha-value>)',
 
+        // Interactive — the one signal reserved for anything clickable (Design_System_v1 §6).
+        // Token name kept as `accent-teal` for backward compatibility with existing class usage
+        // across the codebase; the underlying value is now the instrument-blue, not teal.
         'accent-teal':         'rgb(var(--color-accent-teal) / <alpha-value>)',
         'accent-teal-dim':     'rgb(var(--color-accent-teal-dim) / <alpha-value>)',
         'accent-teal-bright':  'rgb(var(--color-accent-teal-bright) / <alpha-value>)',
         'accent-teal-wash':    'rgb(var(--color-accent-teal-wash) / <alpha-value>)',
+        // Warning — token name kept as `accent-orange` for backward compatibility; the
+        // underlying value is now the desaturated semantic warning amber, not a decorative orange.
         'accent-orange':       'rgb(var(--color-accent-orange) / <alpha-value>)',
         'accent-orange-bright':'rgb(var(--color-accent-orange-bright) / <alpha-value>)',
 
+        // Semantic — reserved exclusively for critical/warning/success meaning, never branding.
+        'critical': 'rgb(var(--color-critical) / <alpha-value>)',
+        'warning':  'rgb(var(--color-warning) / <alpha-value>)',
+        'success':  'rgb(var(--color-success) / <alpha-value>)',
+
         // Node type colours (Knowledge Graph) — fixed across themes by design.
-        'node-equipment':  '#3B82F6',
-        'node-incident':   '#EF4444',
-        'node-procedure':  '#10B981',
-        'node-regulation': '#8B5CF6',
-        'node-person':     '#F59E0B',
-        'node-document':   '#6B7280',
-        'node-work-order': '#F97316',
+        // Revised per Design_System_v1 §6 so no node hue collides with a semantic alert color.
+        'node-equipment':  '#3E6FD9',
+        'node-incident':   '#C24B87',
+        'node-procedure':  '#1D8A8A',
+        'node-regulation': '#7A5FC7',
+        'node-person':     '#2394B0',
+        'node-document':   '#7C838C',
+        'node-work-order': '#5D5FCF',
       },
       borderRadius: {
         'sm': '4px',
@@ -70,6 +81,12 @@ export default {
         'base': '150ms',
         'enter': '200ms',
         'slow': '300ms',
+      },
+      boxShadow: {
+        // Matches UI_Design_System.md §5 — light theme only, dark theme uses bg lightness instead.
+        'card': '0 1px 3px rgba(15,23,42,0.07), 0 2px 5px rgba(15,23,42,0.05)',
+        'elevated': '0 6px 10px rgba(15,23,42,0.08), 0 3px 5px rgba(15,23,42,0.06)',
+        'overlay': '0 20px 25px rgba(15,23,42,0.12), 0 10px 10px rgba(15,23,42,0.05)',
       },
       keyframes: {
         'streaming-dot': {

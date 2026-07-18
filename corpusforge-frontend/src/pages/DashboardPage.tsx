@@ -68,8 +68,8 @@ export default function DashboardPage() {
 
   return (
     <div className="pt-6 px-4 sm:px-6 pb-10 max-w-[1280px] mx-auto">
-      <h1 className="text-2xl font-semibold text-text-primary">{getGreeting()}, Operator</h1>
-      <p className={`text-sm mt-1 ${criticalCount > 0 ? 'font-medium text-red-500' : 'text-text-muted'}`}>
+      <h1 className="text-3xl font-semibold tracking-tight text-text-primary">{getGreeting()}, Operator</h1>
+      <p className={`text-sm mt-1.5 ${criticalCount > 0 ? 'font-medium text-red-500' : 'text-text-muted'}`}>
         {criticalCount > 0
           ? `${criticalCount} critical issue${criticalCount === 1 ? '' : 's'} need${criticalCount === 1 ? 's' : ''} your attention.`
           : 'All systems normal.'}
@@ -131,7 +131,7 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div
-              className={`bg-bg-surface rounded-lg p-5 border ${
+              className={`bg-bg-surface rounded-lg p-5 border shadow-card dark:shadow-none transition-fast ${
                 topFindings.length > 0 ? 'border-border-default border-l-4 border-l-red-500' : 'border-border-default'
               }`}
             >
@@ -151,7 +151,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-bg-surface border border-border-default rounded-lg p-5">
+            <div className="bg-bg-surface border border-border-default rounded-lg p-5 shadow-card dark:shadow-none transition-fast">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-text-primary">Recent Activity</h2>
                 <button onClick={() => navigate('/documents')} className="text-xs text-accent-teal hover:underline">
