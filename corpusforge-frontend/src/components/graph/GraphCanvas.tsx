@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods, NodeObject } from 'react-force-graph-2d';
@@ -42,9 +42,19 @@ export default function GraphCanvas({
   const palette = CANVAS_PALETTE[theme];
 
   const hasAutoFitted = useRef(false);
+  const pinnedIdRef = useRef<string | undefined>(undefined);
+
+  // Stable node/link objects across re-renders (e.g. a selection change) rather than fresh
+  // copies every render — force-graph's graphData setter has no id-based merge, so handing it
+  // a new object reference (as the previous per-render `.map()` did) pauses the simulation on
+  // every render, and any x/y/fx/fy written onto those throwaway copies is lost immediately.
+  // Only recreated when the underlying data itself changes.
+  const graphNodes = useMemo(() => data.nodes.map((n) => ({ ...n })), [data]);
+  const graphLinks = useMemo(() => data.links.map((l) => ({ ...l })), [data]);
 
   useEffect(() => {
     hasAutoFitted.current = false;
+    pinnedIdRef.current = undefined;
   }, [data]);
 
   useEffect(() => {
@@ -58,21 +68,48 @@ export default function GraphCanvas({
   useEffect(() => {
     if (!focusNodeId || !graphRef.current) return;
     const timer = setTimeout(() => {
-      const node = (data.nodes as CanvasNode[]).find((n) => n.id === focusNodeId);
+      const node = (graphNodes as CanvasNode[]).find((n) => n.id === focusNodeId);
       if (node && node.x !== undefined && node.y !== undefined) {
         graphRef.current?.centerAt(node.x, node.y, 1000);
         graphRef.current?.zoom(4, 1000);
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [focusNodeId, data, graphRef]);
+  }, [focusNodeId, graphNodes, graphRef]);
+
+  // The Anvil Point (Visual_Identity.md, signature element 6) — the one fixed, heavier node
+  // in the graph: the entity currently in focus. Force-directed layouts drift ambiently by
+  // default, so the focused node is pinned (fx/fy) rather than left to settle wherever the
+  // physics land it, and the previous anchor is unpinned so exactly one node is ever fixed.
+  useEffect(() => {
+    const anchorId = selectedNodeId ?? focusNodeId;
+    if (!anchorId || !graphRef.current) return;
+    const timer = setTimeout(() => {
+      const nodes = graphNodes as CanvasNode[];
+      if (pinnedIdRef.current && pinnedIdRef.current !== anchorId) {
+        const prev = nodes.find((n) => n.id === pinnedIdRef.current);
+        if (prev) {
+          prev.fx = undefined;
+          prev.fy = undefined;
+        }
+      }
+      const anchor = nodes.find((n) => n.id === anchorId);
+      if (anchor && anchor.x !== undefined && anchor.y !== undefined) {
+        anchor.fx = anchor.x;
+        anchor.fy = anchor.y;
+        pinnedIdRef.current = anchorId;
+        graphRef.current?.d3ReheatSimulation();
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [selectedNodeId, focusNodeId, graphNodes, graphRef]);
 
   return (
     <ForceGraph2D
       ref={graphRef}
       width={width}
       height={height}
-      graphData={{ nodes: data.nodes.map((n) => ({ ...n })), links: data.links.map((l) => ({ ...l })) }}
+      graphData={{ nodes: graphNodes, links: graphLinks }}
       backgroundColor={palette.background}
       nodeLabel={(node) => `${(node as CanvasNode).name} (${nodeTypeOf((node as CanvasNode).type)})`}
       nodeRelSize={6}
