@@ -21,7 +21,13 @@ export default function CitationChip({ citation }: { citation: Citation }) {
   return (
     <button
       title={citation.filename}
-      onClick={() => navigate(`/document-viewer?id=${citation.document_id}&page=${citation.page_number}`)}
+      onClick={() =>
+        navigate(
+          citation.page_number != null
+            ? `/document-viewer?id=${citation.document_id}&page=${citation.page_number}`
+            : `/document-viewer?id=${citation.document_id}`,
+        )
+      }
       className="group relative inline-flex min-h-[28px] max-sm:min-h-[44px] cursor-pointer
                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-teal
                  focus-visible:ring-offset-1 focus-visible:ring-offset-bg-surface"
@@ -37,7 +43,8 @@ export default function CitationChip({ citation }: { citation: Citation }) {
         style={{ clipPath: INNER_CLIP }}
       >
         <FileText size={10} />
-        {truncate(citation.filename)} p.{citation.page_number}
+        {truncate(citation.filename)}
+        {citation.page_number != null && ` p.${citation.page_number}`}
       </span>
     </button>
   );

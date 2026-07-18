@@ -2,6 +2,7 @@ import { ArrowRight, ExternalLink, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNodeDetail } from '../../hooks/useGraph';
 import { NODE_COLORS, NODE_TYPE_LABELS, nodeTypeOf } from '../../utils/constants';
+import CitationChip from '../shared/CitationChip';
 import LoadingSpinner from '../shared/LoadingSpinner';
 
 interface NodeDetailPanelProps {
@@ -62,12 +63,14 @@ export default function NodeDetailPanel({ entityId, onClose }: NodeDetailPanelPr
                     <p className="text-sm font-medium text-text-primary truncate">{connection.entity}</p>
                     <p className="text-xs text-text-muted italic">{connection.relationship}</p>
                     {connection.source_document && connection.source_document_id && (
-                      <button
-                        onClick={() => navigate(`/document-viewer?id=${connection.source_document_id}`)}
-                        className="text-xs text-accent-teal hover:underline mt-0.5 truncate block max-w-full"
-                      >
-                        Source: {connection.source_document}
-                      </button>
+                      <div className="mt-1">
+                        <CitationChip
+                          citation={{
+                            document_id: connection.source_document_id,
+                            filename: connection.source_document,
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
