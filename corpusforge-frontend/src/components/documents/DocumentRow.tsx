@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react';
 import type { Document } from '../../types/document';
 import { useDocumentStatus } from '../../hooks/useDocuments';
 import { DOC_TYPE_LABELS, DOC_TYPE_PILL_CLASSES } from '../../utils/constants';
+import { castNumber } from '../../utils/castNumber';
 import StatusIndicator from './StatusIndicator';
 
 interface DocumentRowProps {
@@ -21,6 +22,7 @@ export default function DocumentRow({ document, onDelete }: DocumentRowProps) {
 
   return (
     <tr className="group bg-bg-surface border-b border-border-subtle hover:bg-bg-elevated transition-fast">
+      <td className="px-4 py-3 font-mono text-xs text-text-muted">{castNumber(document.id)}</td>
       <td className="px-4 py-3 text-sm text-text-primary max-w-[240px] truncate">{document.filename}</td>
       <td className="px-4 py-3">
         {document.doc_type ? (

@@ -6,7 +6,7 @@ interface DocumentTableProps {
   onDelete: (doc: Document) => void;
 }
 
-const HEADERS = ['Filename', 'Type', 'Status', 'Pages', 'Entities', ''];
+const HEADERS = ['Cast No.', 'Filename', 'Type', 'Status', 'Pages', 'Entities', ''];
 
 export default function DocumentTable({ documents, onDelete }: DocumentTableProps) {
   return (
