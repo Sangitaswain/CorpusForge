@@ -30,8 +30,15 @@ export default function MessageBubble({ message, onFollowUp }: MessageBubbleProp
         </div>
       )}
 
+      {/* The Forge Line (Visual_Identity.md, signature element 3) — a single heavier rule
+          marking the transition from evidence to the confirmed, trust-bearing result. Kept as
+          a plain rule (border-strong, not the Temper Arc gradient) so it stays a distinct
+          signature element rather than blurring into confidence. Citations still land as an
+          endnote block above this line rather than attaching progressively at the clause each
+          one supports mid-stream — that needs the streaming pipeline itself to carry citation
+          offsets, a separate change from this component. */}
       {response && (
-        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-border-subtle">
+        <div className="flex flex-wrap items-center gap-3 mt-3 pt-4 border-t-2 border-border-strong">
           <ConfidenceBadge confidence={response.confidence} />
           {response.used_graph && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-accent-teal text-accent-teal">
