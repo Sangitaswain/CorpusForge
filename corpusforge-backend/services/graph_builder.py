@@ -112,6 +112,10 @@ class GraphBuilder:
                     "name": attrs.get("name"),
                     "type": attrs.get("type"),
                     "document_count": len(set(attrs.get("document_ids", []))),
+                    # IA-4/IA-5 — total real connections in the full graph, vs. however many
+                    # of them are actually drawn in this (possibly ego-limited) response. Lets
+                    # the frontend render a "+N more" affordance honestly instead of guessing.
+                    "degree": len(set(self.G.neighbors(node_id)) | set(self.G.predecessors(node_id))),
                 }
                 for node_id, attrs in G_sub.nodes(data=True)
             ],

@@ -59,6 +59,9 @@ def get_graph_node(entity_id: str, db: Session = Depends(get_db)):
                 "name": attrs.get("name"),
                 "type": attrs.get("type"),
                 "document_count": len(set(attrs.get("document_ids", []))),
+                "degree": len(
+                    set(graph_builder.G.neighbors(entity_id)) | set(graph_builder.G.predecessors(entity_id))
+                ),
             },
             "connected": connected,
         }

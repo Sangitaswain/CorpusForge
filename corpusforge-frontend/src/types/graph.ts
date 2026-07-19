@@ -18,6 +18,9 @@ export interface GraphNode {
   name: string;
   type: string; // backend entity_type, e.g. 'equipment_tag' — map via nodeTypeOf()
   document_count: number;
+  // IA-4/IA-5 — total real connections this entity has in the full graph, which may exceed
+  // how many are actually drawn in the current (possibly ego-limited) response.
+  degree: number;
 }
 
 export interface GraphLink {
