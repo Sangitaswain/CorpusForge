@@ -26,6 +26,7 @@ All docs live in `docs/` — gitignored, never pushed to GitHub. Read them befor
 | `docs/Backend_Plan.md` | BP | All backend modules: models, routes, services, LangGraph agents |
 | `docs/Frontend_Plan.md` | FP | All frontend pages, components, TypeScript types, API client |
 | `docs/UI_Design_System.md` | UI | **Read before writing any frontend code.** Color tokens, typography, Tailwind config, CSS variables, all 17 component specs, page layouts, do-not-do list |
+| `docs/Knowledge_Graph_Design_Bible.md` | KGDB | **Read before any Knowledge Graph work.** Permanent, numbered-rule source of truth for the Investigation Board (node/edge/panel/motion/search rules, things that must never change). Treat as immutable; flag conflicts by rule ID instead of silently deciding differently. |
 | `docs/Implementation_Plan.md` | IP | Step-by-step build order with cross-references and checklists |
 | `docs/Phase_Strategy.md` | PS | Timeline, phase goals, risk flags, daily targets |
 | `docs/Security_and_Operations.md` | SO | Security controls, prompt injection prevention, ORM rules, signed URLs |
