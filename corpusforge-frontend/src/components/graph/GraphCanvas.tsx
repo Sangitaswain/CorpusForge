@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods, NodeObject } from 'react-force-graph-2d';
@@ -44,6 +44,22 @@ export default function GraphCanvas({
 
   const hasAutoFitted = useRef(false);
   const pinnedIdRef = useRef<string | undefined>(undefined);
+
+  // NODE-7 — canvas text can't inherit CSS font-family, and a browser doesn't repaint an
+  // already-drawn canvas once a lazy-loaded @font-face finishes fetching (unlike DOM text,
+  // which reflows on its own). Explicitly request the real face and force one repaint once
+  // it's actually available — `fontReady` flipping gives nodeCanvasObject a new closure,
+  // which is enough to get force-graph to redraw even if its own render loop had gone idle.
+  const [fontReady, setFontReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    document.fonts.load('12px "IBM Plex Sans"').then(() => {
+      if (!cancelled) setFontReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Stable node/link objects across re-renders (e.g. a selection change) rather than fresh
   // copies every render — force-graph's graphData setter has no id-based merge, so handing it
@@ -147,7 +163,7 @@ export default function GraphCanvas({
 
         if (globalScale < LABEL_ZOOM_THRESHOLD && !isSelected) return;
         const fontSize = Math.max(10 / globalScale, 2.5);
-        ctx.font = `${fontSize}px Inter, sans-serif`;
+        ctx.font = fontReady ? `${fontSize}px "IBM Plex Sans", sans-serif` : `${fontSize}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillStyle = palette.label;
