@@ -1,8 +1,15 @@
 import { apiClient } from './client';
-import type { GraphData, NodeDetail } from '../types/graph';
+import type { GraphData, NodeDetail, NodeSearchResult } from '../types/graph';
 
 export const getGraph = async (focus?: string): Promise<GraphData> => {
   const { data } = await apiClient.get('/graph', { params: focus ? { focus } : {} });
+  return data.data;
+};
+
+// SEARCH-2 — autocomplete-as-you-type backing call.
+export const searchGraphEntities = async (query: string): Promise<NodeSearchResult[]> => {
+  if (!query.trim()) return [];
+  const { data } = await apiClient.get('/graph/search', { params: { q: query } });
   return data.data;
 };
 

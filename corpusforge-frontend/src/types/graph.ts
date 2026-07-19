@@ -47,3 +47,10 @@ export interface NodeDetail {
   entity: GraphNode;
   connected: ConnectedEntity[];
 }
+
+// SEARCH-2 — one autocomplete match; type is the raw backend entity_type, map via nodeTypeOf().
+export interface NodeSearchResult {
+  id: string;
+  name: string;
+  type: string;
+}

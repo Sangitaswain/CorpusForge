@@ -28,6 +28,15 @@ def get_graph(focus: str | None = None):
     return ok(graph_builder.to_frontend_json(focus_value or None))
 
 
+@router.get("/search")
+def search_graph_entities(q: str | None = None):
+    # SEARCH-2 — autocomplete-as-you-type backing endpoint.
+    query = validate_entity_focus(q) if q else ""
+    if not query:
+        return ok([])
+    return ok(graph_builder.search_entities(query))
+
+
 @router.get("/node/{entity_id}")
 def get_graph_node(entity_id: str, db: Session = Depends(get_db)):
     validate_uuid(entity_id)

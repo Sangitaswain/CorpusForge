@@ -74,6 +74,28 @@ class GraphBuilder:
                 return node_id
         return None
 
+    def search_entities(self, query: str, limit: int = 8) -> list[dict]:
+        """Knowledge_Graph_Design_Bible.md SEARCH-2 — case-insensitive substring match
+        over node names, prefix matches ranked ahead of mid-string matches. Simple on
+        purpose: the corpus is small enough that a fuzzy/edit-distance library would be
+        unjustified complexity (see SEARCH-2 scope decision)."""
+        needle = query.strip().lower()
+        if not needle:
+            return []
+        prefix_matches: list[tuple[str, dict]] = []
+        substring_matches: list[tuple[str, dict]] = []
+        for node_id, attrs in self.G.nodes(data=True):
+            name_lower = (attrs.get("name") or "").lower()
+            if name_lower.startswith(needle):
+                prefix_matches.append((node_id, attrs))
+            elif needle in name_lower:
+                substring_matches.append((node_id, attrs))
+        ordered = prefix_matches + substring_matches
+        return [
+            {"id": node_id, "name": attrs.get("name"), "type": attrs.get("type")}
+            for node_id, attrs in ordered[:limit]
+        ]
+
     def to_frontend_json(self, focus_entity_value: str | None = None) -> dict:
         G_sub = self.G
         if focus_entity_value:
