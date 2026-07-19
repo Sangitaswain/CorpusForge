@@ -68,8 +68,12 @@ export default {
         'node-procedure':  NODE_PALETTE.procedure,
         'node-regulation': NODE_PALETTE.regulation,
         'node-person':     NODE_PALETTE.person,
-        'node-document':   NODE_PALETTE.document,
         'node-work-order': NODE_PALETTE.work_order,
+        // NODE-4 — date/parameter are their own honest types, no longer a generic
+        // "node-document" catch-all.
+        'node-date':       NODE_PALETTE.date,
+        'node-parameter':  NODE_PALETTE.parameter,
+        'node-other':      NODE_PALETTE.other,
       },
       borderRadius: {
         'sm': '4px',

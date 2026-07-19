@@ -1,7 +1,9 @@
 import type { NodeType } from '../../types/graph';
 import { NODE_COLORS, NODE_TYPE_LABELS } from '../../utils/constants';
 
-const FILTERABLE: NodeType[] = ['equipment', 'incident', 'procedure', 'regulation', 'person', 'work_order', 'document'];
+const FILTERABLE: NodeType[] = [
+  'equipment', 'incident', 'procedure', 'regulation', 'person', 'work_order', 'date', 'parameter', 'other',
+];
 
 interface GraphFiltersProps {
   hiddenTypes: Set<NodeType>;

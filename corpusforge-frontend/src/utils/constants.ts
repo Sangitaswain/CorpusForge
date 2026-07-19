@@ -6,7 +6,9 @@ import { NODE_PALETTE } from '../constants/nodePalette';
 // source of truth also consumed by tailwind.config.ts. Do not hardcode these values here.
 export const NODE_COLORS: Record<NodeType, string> = NODE_PALETTE;
 
-// Backend entity_type values → canvas node types
+// Backend entity_type values → canvas node types.
+// Knowledge_Graph_Design_Bible.md NODE-4 — date and parameter get their own honest
+// mapping, not folded into a generic bucket.
 export const ENTITY_TYPE_TO_NODE_TYPE: Record<string, NodeType> = {
   equipment_tag: 'equipment',
   incident_id: 'incident',
@@ -14,8 +16,8 @@ export const ENTITY_TYPE_TO_NODE_TYPE: Record<string, NodeType> = {
   regulation_ref: 'regulation',
   person: 'person',
   work_order_id: 'work_order',
-  date: 'document',
-  parameter: 'document',
+  date: 'date',
+  parameter: 'parameter',
 };
 
 export const NODE_TYPE_LABELS: Record<NodeType, string> = {
@@ -24,12 +26,14 @@ export const NODE_TYPE_LABELS: Record<NodeType, string> = {
   procedure: 'Procedure',
   regulation: 'Regulation',
   person: 'Person',
-  document: 'Other',
   work_order: 'Work Order',
+  date: 'Date',
+  parameter: 'Parameter',
+  other: 'Other',
 };
 
 export function nodeTypeOf(entityType: string): NodeType {
-  return ENTITY_TYPE_TO_NODE_TYPE[entityType] ?? 'document';
+  return ENTITY_TYPE_TO_NODE_TYPE[entityType] ?? 'other';
 }
 
 export const DOC_TYPE_LABELS: Record<DocumentType, string> = {

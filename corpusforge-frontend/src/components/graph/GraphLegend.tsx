@@ -1,7 +1,9 @@
 import type { NodeType } from '../../types/graph';
 import { NODE_COLORS, NODE_TYPE_LABELS } from '../../utils/constants';
 
-const LEGEND_TYPES: NodeType[] = ['equipment', 'incident', 'procedure', 'regulation', 'person', 'work_order', 'document'];
+const LEGEND_TYPES: NodeType[] = [
+  'equipment', 'incident', 'procedure', 'regulation', 'person', 'work_order', 'date', 'parameter', 'other',
+];
 
 export default function GraphLegend() {
   return (

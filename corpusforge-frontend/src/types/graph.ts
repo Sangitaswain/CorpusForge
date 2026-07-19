@@ -1,4 +1,17 @@
-export type NodeType = 'equipment' | 'procedure' | 'incident' | 'regulation' | 'person' | 'document' | 'work_order';
+// Knowledge_Graph_Design_Bible.md NODE-4 — 'date' and 'parameter' are their own honest
+// types, not merged into a generic catch-all. 'other' is a defensive fallback for an
+// unexpected entity_type value, not a real category — the eight real backend entity types
+// (NODE-1) each map onto a distinct NodeType here.
+export type NodeType =
+  | 'equipment'
+  | 'procedure'
+  | 'incident'
+  | 'regulation'
+  | 'person'
+  | 'work_order'
+  | 'date'
+  | 'parameter'
+  | 'other';
 
 export interface GraphNode {
   id: string;

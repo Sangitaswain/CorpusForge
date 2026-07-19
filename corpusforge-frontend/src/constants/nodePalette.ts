@@ -11,6 +11,11 @@ export const NODE_PALETTE: Record<NodeType, string> = {
   procedure: '#1D8A8A',
   regulation: '#7A5FC7',
   person: '#2394B0',
-  document: '#7C838C',
   work_order: '#5D5FCF',
+  // NODE-5 — date/parameter/other intentionally share this quiet neutral color; they are
+  // differentiated by shape, not color (parameter rising to critical on exceedance is a
+  // separate, not-yet-implemented rule — see NODE-4 deferral note in NodeDetailPanel work).
+  date: '#7C838C',
+  parameter: '#7C838C',
+  other: '#7C838C',
 };
