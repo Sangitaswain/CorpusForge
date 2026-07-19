@@ -17,7 +17,7 @@ export default function GraphSearch({ onSearch, activeFocus }: GraphSearchProps)
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onSearch(value.trim())}
-          placeholder="Search node..."
+          placeholder="Search P-101, INC-2022-07…"
           className="bg-bg-elevated border border-border-default rounded-md pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-teal focus:ring-1 focus:ring-accent-teal/20 transition-fast w-44 sm:w-56"
         />
       </div>
