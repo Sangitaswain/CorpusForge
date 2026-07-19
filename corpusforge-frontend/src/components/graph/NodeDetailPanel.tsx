@@ -2,6 +2,8 @@ import { ArrowRight, ExternalLink, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNodeDetail } from '../../hooks/useGraph';
 import { NODE_COLORS, NODE_TYPE_LABELS, nodeTypeOf } from '../../utils/constants';
+import { castNumber } from '../../utils/castNumber';
+import BatchMark from '../shared/BatchMark';
 import CitationChip from '../shared/CitationChip';
 import LoadingSpinner from '../shared/LoadingSpinner';
 
@@ -20,7 +22,12 @@ export default function NodeDetailPanel({ entityId, onClose }: NodeDetailPanelPr
         <div>
           {data && (
             <>
-              <h2 className="text-xl font-bold text-text-primary">{data.entity.name}</h2>
+              <div className="flex items-baseline gap-2">
+                <h2 className="text-xl font-bold text-text-primary">{data.entity.name}</h2>
+                {/* Cast Number (PANEL-2) — permanent, quiet, reference-only; never regenerated
+                    on re-render since castNumber() is a pure hash of the entity id (NEVER-9). */}
+                <span className="font-mono text-2xs text-text-muted shrink-0">{castNumber(data.entity.id, 'REC')}</span>
+              </div>
               <div className="flex items-center gap-2 mt-1.5">
                 <span
                   className="text-xs font-medium px-2 py-0.5 rounded-full text-white"
@@ -28,9 +35,7 @@ export default function NodeDetailPanel({ entityId, onClose }: NodeDetailPanelPr
                 >
                   {NODE_TYPE_LABELS[nodeTypeOf(data.entity.type)]}
                 </span>
-                <span className="text-sm text-text-muted">
-                  {data.entity.document_count} document{data.entity.document_count === 1 ? '' : 's'}
-                </span>
+                <BatchMark count={data.entity.document_count} />
               </div>
             </>
           )}
