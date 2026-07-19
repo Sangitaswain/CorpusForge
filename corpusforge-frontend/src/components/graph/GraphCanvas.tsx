@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods, NodeObject } from 'react-force-graph-2d';
-import type { GraphData, GraphNode } from '../../types/graph';
+import type { GraphData, GraphLink, GraphNode } from '../../types/graph';
 import { NODE_COLORS, nodeTypeOf } from '../../utils/constants';
 import { traceNodeShape } from './nodeShapes';
 import { computeLensLayout, lensForType, type Lens } from './graphLens';
@@ -193,6 +193,42 @@ export default function GraphCanvas({
         nodeRelSize={6}
         linkColor={() => palette.link}
         linkWidth={1.5}
+        // EDGE-1/NEVER-3 — every edge states its real relationship verb, directly on the
+        // line, in Plex Mono, source→target. There is no generic-fallback path here (EDGE-2)
+        // since `type` is always one of the real co-occurrence verbs (MAINTAINED_BY, INVOLVES,
+        // GOVERNED_BY, PERFORMED_BY) — an edge with nothing to say is simply never created
+        // (see COOCCURRENCE_RULES on the backend).
+        linkCanvasObjectMode={() => 'after'}
+        linkCanvasObject={(link, ctx, globalScale) => {
+          const l = link as GraphLink & { source: CanvasNode | string; target: CanvasNode | string };
+          const src = l.source;
+          const tgt = l.target;
+          if (typeof src !== 'object' || typeof tgt !== 'object' || src.x == null || tgt.x == null) return;
+          if (globalScale < LABEL_ZOOM_THRESHOLD) return;
+
+          const midX = (src.x + tgt.x) / 2;
+          const midY = (src.y! + tgt.y!) / 2;
+          let angle = Math.atan2(tgt.y! - src.y!, tgt.x - src.x);
+          // Keep the verb upright and readable source→target regardless of which way the
+          // line happens to point on screen — never upside down.
+          if (angle > Math.PI / 2 || angle < -Math.PI / 2) angle += Math.PI;
+
+          const fontSize = Math.max(9 / globalScale, 2.2);
+          ctx.save();
+          ctx.translate(midX, midY);
+          ctx.rotate(angle);
+          ctx.font = fontReady ? `${fontSize}px "IBM Plex Mono", monospace` : `${fontSize}px monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const label = l.type;
+          const padding = fontSize * 0.4;
+          const width = ctx.measureText(label).width + padding * 2;
+          ctx.fillStyle = palette.background;
+          ctx.fillRect(-width / 2, -fontSize * 0.7, width, fontSize * 1.4);
+          ctx.fillStyle = palette.label;
+          ctx.fillText(label, 0, 0);
+          ctx.restore();
+        }}
         // IA-5 — selecting a node (new focus) and expanding it (pulling in its own further
         // neighbors without recentering) are two distinct gestures with two distinct click
         // targets: the node body (primary click) vs. the stamped context card (COMP-10),
