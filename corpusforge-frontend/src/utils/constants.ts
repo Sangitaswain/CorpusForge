@@ -1,16 +1,10 @@
 import type { NodeType } from '../types/graph';
 import type { DocumentType } from '../types/document';
+import { NODE_PALETTE } from '../constants/nodePalette';
 
-// UI Design System 2.4 — the only colours allowed on the graph canvas
-export const NODE_COLORS: Record<NodeType, string> = {
-  equipment: '#3B82F6',
-  incident: '#EF4444',
-  procedure: '#10B981',
-  regulation: '#8B5CF6',
-  person: '#F59E0B',
-  document: '#6B7280',
-  work_order: '#F97316',
-};
+// Knowledge_Graph_Design_Bible.md NODE-6 — sourced from NODE_PALETTE, the single
+// source of truth also consumed by tailwind.config.ts. Do not hardcode these values here.
+export const NODE_COLORS: Record<NodeType, string> = NODE_PALETTE;
 
 // Backend entity_type values → canvas node types
 export const ENTITY_TYPE_TO_NODE_TYPE: Record<string, NodeType> = {

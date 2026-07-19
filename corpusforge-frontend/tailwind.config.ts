@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import { NODE_PALETTE } from './src/constants/nodePalette';
 
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -60,14 +61,15 @@ export default {
         'success':  'rgb(var(--color-success) / <alpha-value>)',
 
         // Node type colours (Knowledge Graph) — fixed across themes by design.
-        // Revised per Design_System_v1 §6 so no node hue collides with a semantic alert color.
-        'node-equipment':  '#3E6FD9',
-        'node-incident':   '#C24B87',
-        'node-procedure':  '#1D8A8A',
-        'node-regulation': '#7A5FC7',
-        'node-person':     '#2394B0',
-        'node-document':   '#7C838C',
-        'node-work-order': '#5D5FCF',
+        // Sourced from NODE_PALETTE (Knowledge_Graph_Design_Bible.md NODE-6 / IDENT-4) —
+        // the single source of truth also consumed by utils/constants.ts's NODE_COLORS.
+        'node-equipment':  NODE_PALETTE.equipment,
+        'node-incident':   NODE_PALETTE.incident,
+        'node-procedure':  NODE_PALETTE.procedure,
+        'node-regulation': NODE_PALETTE.regulation,
+        'node-person':     NODE_PALETTE.person,
+        'node-document':   NODE_PALETTE.document,
+        'node-work-order': NODE_PALETTE.work_order,
       },
       borderRadius: {
         'sm': '4px',
