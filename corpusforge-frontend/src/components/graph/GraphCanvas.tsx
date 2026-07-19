@@ -4,6 +4,7 @@ import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods, NodeObject } from 'react-force-graph-2d';
 import type { GraphData, GraphNode } from '../../types/graph';
 import { NODE_COLORS, nodeTypeOf } from '../../utils/constants';
+import { traceNodeShape } from './nodeShapes';
 import { useTheme } from '../../hooks/useTheme';
 
 interface GraphCanvasProps {
@@ -130,18 +131,17 @@ export default function GraphCanvas({
       onNodeClick={(node) => onNodeClick(node as CanvasNode)}
       nodeCanvasObject={(node, ctx, globalScale) => {
         const n = node as CanvasNode;
-        const color = NODE_COLORS[nodeTypeOf(n.type)];
+        const type = nodeTypeOf(n.type);
+        const color = NODE_COLORS[type];
         const radius = Math.min(6 + n.document_count * 0.8, 16);
         const isSelected = selectedNodeId === n.id;
 
         if (isSelected) {
-          ctx.beginPath();
-          ctx.arc(n.x!, n.y!, radius + 8, 0, 2 * Math.PI);
+          traceNodeShape(ctx, type, n.x!, n.y!, radius + 8);
           ctx.fillStyle = `${color}4D`; // rgba(color, 0.3)
           ctx.fill();
         }
-        ctx.beginPath();
-        ctx.arc(n.x!, n.y!, radius, 0, 2 * Math.PI);
+        traceNodeShape(ctx, type, n.x!, n.y!, radius);
         ctx.fillStyle = color;
         ctx.fill();
 
