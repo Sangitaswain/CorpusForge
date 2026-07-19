@@ -51,6 +51,12 @@ export default function GraphCanvas({
   // Only recreated when the underlying data itself changes.
   const graphNodes = useMemo(() => data.nodes.map((n) => ({ ...n })), [data]);
   const graphLinks = useMemo(() => data.links.map((l) => ({ ...l })), [data]);
+  // react-kapsule (the wrapper underneath ForceGraph2D) diffs each prop by reference per
+  // render and re-invokes the underlying setter whenever that reference changes — including
+  // `graphData` itself, not just its nested arrays. An inline `{ nodes, links }` literal here
+  // would still be a fresh object every render even with graphNodes/graphLinks memoized above,
+  // re-pausing the simulation on every unrelated re-render (e.g. a selection change).
+  const graphData = useMemo(() => ({ nodes: graphNodes, links: graphLinks }), [graphNodes, graphLinks]);
 
   useEffect(() => {
     hasAutoFitted.current = false;
@@ -109,7 +115,7 @@ export default function GraphCanvas({
       ref={graphRef}
       width={width}
       height={height}
-      graphData={{ nodes: graphNodes, links: graphLinks }}
+      graphData={graphData}
       backgroundColor={palette.background}
       nodeLabel={(node) => `${(node as CanvasNode).name} (${nodeTypeOf((node as CanvasNode).type)})`}
       nodeRelSize={6}
