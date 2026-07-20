@@ -2,9 +2,11 @@ import json
 import uuid
 from unittest.mock import MagicMock, patch
 
+from models.compliance_gap import ComplianceGap
+from models.document import Document
 from models.entity import Entity
 from models.relationship import Relationship
-from services.graph_builder import GraphBuilder, build_cooccurrence_edges
+from services.graph_builder import GraphBuilder, build_cooccurrence_edges, build_violates_edges
 
 
 def _entity(entity_type, value, doc="doc1"):
@@ -15,6 +17,23 @@ def _entity(entity_type, value, doc="doc1"):
         entity_type=entity_type,
         value=value,
         normalized_value=value,
+    )
+
+
+def _gap(regulation_ref="OISD-STD-105", matched_procedure_id=None, verdict="gap", reg_document_id=None):
+    return ComplianceGap(
+        id=str(uuid.uuid4()),
+        regulation_ref=regulation_ref,
+        clause_number="4.2",
+        clause_text="Calibrate every 6 months",
+        reg_document_id=reg_document_id,
+        matched_procedure_id=matched_procedure_id,
+        matched_chunk_id=None,
+        verdict=verdict,
+        explanation="Procedure says annual, regulation requires 6-monthly",
+        severity="Audit-Critical",
+        recommendation="Update SOP-12 to a 6-month interval",
+        created_at="2026-06-26T10:00:00",
     )
 
 
@@ -324,3 +343,164 @@ def test_graph_node_detail_includes_timeline(test_client, test_db, fresh_graph):
     data = response.json()["data"]
     assert len(data["timeline"]) == 1
     assert data["timeline"][0]["label"] == "15 July 2022"
+
+
+def test_build_violates_edges_creates_edge_for_real_entity_match(test_db, monkeypatch):
+    import services.graph_builder as gb_module
+
+    fresh = GraphBuilder()
+    monkeypatch.setattr(gb_module, "graph_builder", fresh)
+
+    regulation = _entity("regulation_ref", "OISD-STD-105", doc="regdoc")
+    procedure = _entity("procedure_code", "SOP-12", doc="sopdoc")
+    test_db.add_all([regulation, procedure])
+    test_db.commit()
+    fresh.add_entity_node(regulation)
+    fresh.add_entity_node(procedure)
+
+    gap = _gap(regulation_ref="OISD-STD-105", matched_procedure_id="sopdoc", verdict="gap")
+    test_db.add(gap)
+    test_db.commit()
+
+    created = build_violates_edges(test_db)
+
+    assert created == 1
+    assert fresh.G.has_edge(procedure.id, regulation.id)
+    assert fresh.G.edges[procedure.id, regulation.id]["type"] == "VIOLATES"
+    rel = test_db.query(Relationship).filter_by(rel_type="VIOLATES").first()
+    assert rel is not None
+    assert rel.source_entity_id == procedure.id
+    assert rel.target_entity_id == regulation.id
+
+
+def test_build_violates_edges_skips_gap_with_no_matching_regulation_entity(test_db, monkeypatch):
+    import services.graph_builder as gb_module
+
+    fresh = GraphBuilder()
+    monkeypatch.setattr(gb_module, "graph_builder", fresh)
+
+    procedure = _entity("procedure_code", "SOP-12", doc="sopdoc")
+    test_db.add(procedure)
+    test_db.commit()
+    fresh.add_entity_node(procedure)
+
+    # No "OISD-STD-105" entity exists anywhere in the graph — PANEL-10 forbids fabricating
+    # the link, so this gap must be skipped rather than guessed at.
+    gap = _gap(regulation_ref="OISD-STD-105", matched_procedure_id="sopdoc", verdict="gap")
+    test_db.add(gap)
+    test_db.commit()
+
+    created = build_violates_edges(test_db)
+
+    assert created == 0
+    assert test_db.query(Relationship).filter_by(rel_type="VIOLATES").count() == 0
+
+
+def test_build_violates_edges_skips_compliant_verdict(test_db, monkeypatch):
+    import services.graph_builder as gb_module
+
+    fresh = GraphBuilder()
+    monkeypatch.setattr(gb_module, "graph_builder", fresh)
+
+    regulation = _entity("regulation_ref", "OISD-STD-105", doc="regdoc")
+    procedure = _entity("procedure_code", "SOP-12", doc="sopdoc")
+    test_db.add_all([regulation, procedure])
+    test_db.commit()
+    fresh.add_entity_node(regulation)
+    fresh.add_entity_node(procedure)
+
+    gap = _gap(regulation_ref="OISD-STD-105", matched_procedure_id="sopdoc", verdict="compliant")
+    test_db.add(gap)
+    test_db.commit()
+
+    assert build_violates_edges(test_db) == 0
+
+
+def test_build_violates_edges_clears_stale_edges_on_rerun(test_db, monkeypatch):
+    import services.graph_builder as gb_module
+
+    fresh = GraphBuilder()
+    monkeypatch.setattr(gb_module, "graph_builder", fresh)
+
+    regulation = _entity("regulation_ref", "OISD-STD-105", doc="regdoc")
+    procedure = _entity("procedure_code", "SOP-12", doc="sopdoc")
+    test_db.add_all([regulation, procedure])
+    test_db.commit()
+    fresh.add_entity_node(regulation)
+    fresh.add_entity_node(procedure)
+
+    gap = _gap(regulation_ref="OISD-STD-105", matched_procedure_id="sopdoc", verdict="gap")
+    test_db.add(gap)
+    test_db.commit()
+    assert build_violates_edges(test_db) == 1
+
+    # A later compliance run finds this clause now compliant — run_compliance_check deletes
+    # and recreates every gap row; simulate that here.
+    test_db.query(ComplianceGap).delete()
+    test_db.commit()
+
+    assert build_violates_edges(test_db) == 0
+    assert test_db.query(Relationship).filter_by(rel_type="VIOLATES").count() == 0
+    assert not fresh.G.has_edge(procedure.id, regulation.id)
+
+
+def test_get_compliance_findings_for_regulation_and_procedure_node(test_db, monkeypatch):
+    import services.graph_builder as gb_module
+
+    fresh = GraphBuilder()
+    monkeypatch.setattr(gb_module, "graph_builder", fresh)
+
+    regulation = _entity("regulation_ref", "OISD-STD-105", doc="regdoc")
+    procedure = _entity("procedure_code", "SOP-12", doc="sopdoc")
+    test_db.add_all([regulation, procedure, Document(id="regdoc", filename="OISD-STD-105.txt", original_name="OISD-STD-105.txt")])
+    test_db.commit()
+    fresh.add_entity_node(regulation)
+    fresh.add_entity_node(procedure)
+
+    gap = _gap(regulation_ref="OISD-STD-105", matched_procedure_id="sopdoc", verdict="gap", reg_document_id="regdoc")
+    test_db.add(gap)
+    test_db.commit()
+    build_violates_edges(test_db)
+
+    reg_findings = fresh.get_compliance_findings_for_node(regulation.id, test_db)
+    proc_findings = fresh.get_compliance_findings_for_node(procedure.id, test_db)
+
+    assert len(reg_findings) == 1
+    assert reg_findings[0]["severity"] == "Audit-Critical"
+    assert reg_findings[0]["source_document"] == "OISD-STD-105.txt"
+    assert len(proc_findings) == 1
+    assert proc_findings[0]["id"] == reg_findings[0]["id"]
+
+
+def test_get_compliance_findings_empty_for_unrelated_node(test_db, monkeypatch):
+    import services.graph_builder as gb_module
+
+    fresh = GraphBuilder()
+    monkeypatch.setattr(gb_module, "graph_builder", fresh)
+
+    equipment = _entity("equipment_tag", "P-101", doc="doc1")
+    test_db.add(equipment)
+    test_db.commit()
+    fresh.add_entity_node(equipment)
+
+    assert fresh.get_compliance_findings_for_node(equipment.id, test_db) == []
+
+
+def test_graph_node_detail_includes_compliance(test_client, test_db, fresh_graph):
+    regulation = _entity("regulation_ref", "OISD-STD-105", doc="regdoc")
+    procedure = _entity("procedure_code", "SOP-12", doc="sopdoc")
+    test_db.add_all([regulation, procedure])
+    test_db.commit()
+    fresh_graph.load_from_db(test_db)
+
+    gap = _gap(regulation_ref="OISD-STD-105", matched_procedure_id="sopdoc", verdict="gap")
+    test_db.add(gap)
+    test_db.commit()
+    build_violates_edges(test_db)
+
+    response = test_client.get(f"/api/v1/graph/node/{regulation.id}")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data["compliance"]) == 1
+    assert data["compliance"][0]["verdict"] == "gap"

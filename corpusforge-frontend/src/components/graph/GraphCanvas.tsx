@@ -24,9 +24,12 @@ type CanvasNode = NodeObject & GraphNode;
 
 // Mirrors the light/dark tokens in index.css — canvas drawing needs actual
 // color values, not Tailwind classes, so these can't be theme-reactive via CSS.
+// `violation` mirrors --color-accent-orange — GB-3/PANEL-10's VIOLATES edges are a real,
+// backend-verified compliance failure, a categorically different signal from a routine
+// co-occurrence line, so it gets the app's one reserved warning hue instead of blending in.
 const CANVAS_PALETTE = {
-  light: { background: '#FFFFFF', link: '#C5DDD7', label: '#0B1F1C', interactive: '#2159A6' },
-  dark: { background: '#070E0D', link: '#2D5248', label: '#E8F0EE', interactive: '#6CA0E0' },
+  light: { background: '#FFFFFF', link: '#C5DDD7', label: '#0B1F1C', interactive: '#2159A6', violation: '#A5690F' },
+  dark: { background: '#070E0D', link: '#2D5248', label: '#E8F0EE', interactive: '#6CA0E0', violation: '#D49E42' },
 };
 
 // Below this zoom level, node labels are hidden to keep an unfocused graph
@@ -282,13 +285,16 @@ export default function GraphCanvas({
         backgroundColor={palette.background}
         nodeLabel={(node) => `${(node as CanvasNode).name} (${nodeTypeOf((node as CanvasNode).type)})`}
         nodeRelSize={6}
-        linkColor={() => palette.link}
-        linkWidth={1.5}
+        // GB-3/PANEL-10 — VIOLATES edges (a real, backend-verified compliance failure, see
+        // build_violates_edges) get the reserved warning hue and a heavier stroke; every
+        // other edge keeps the standard co-occurrence treatment.
+        linkColor={(link) => ((link as GraphLink).type === 'VIOLATES' ? palette.violation : palette.link)}
+        linkWidth={(link) => ((link as GraphLink).type === 'VIOLATES' ? 2.5 : 1.5)}
         // EDGE-1/NEVER-3 — every edge states its real relationship verb, directly on the
         // line, in Plex Mono, source→target. There is no generic-fallback path here (EDGE-2)
         // since `type` is always one of the real co-occurrence verbs (MAINTAINED_BY, INVOLVES,
-        // GOVERNED_BY, PERFORMED_BY) — an edge with nothing to say is simply never created
-        // (see COOCCURRENCE_RULES on the backend).
+        // GOVERNED_BY, PERFORMED_BY) or the compliance engine's VIOLATES (GB-3/PANEL-10) — an
+        // edge with nothing to say is simply never created.
         linkCanvasObjectMode={() => 'after'}
         linkCanvasObject={(link, ctx, globalScale) => {
           const l = link as GraphLink & { source: CanvasNode | string; target: CanvasNode | string };
@@ -316,7 +322,7 @@ export default function GraphCanvas({
           const width = ctx.measureText(label).width + padding * 2;
           ctx.fillStyle = palette.background;
           ctx.fillRect(-width / 2, -fontSize * 0.7, width, fontSize * 1.4);
-          ctx.fillStyle = palette.label;
+          ctx.fillStyle = label === 'VIOLATES' ? palette.violation : palette.label;
           ctx.fillText(label, 0, 0);
           ctx.restore();
         }}

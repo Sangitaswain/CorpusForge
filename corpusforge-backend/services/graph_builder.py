@@ -12,9 +12,14 @@ import networkx as nx
 from dateutil import parser as date_parser
 from sqlalchemy.orm import Session
 
+from models.compliance_gap import ComplianceGap
 from models.document import Document
 from models.entity import Entity
 from models.relationship import Relationship
+
+# GB-3/PANEL-10 — only these verdicts represent an actual violation worth drawing an edge
+# for; 'compliant' has nothing to flag and 'undetermined' has no matched procedure to link.
+VIOLATION_VERDICTS = ("gap", "outdated")
 
 logger = logging.getLogger(__name__)
 
@@ -220,6 +225,44 @@ class GraphBuilder:
             del e["_sort_key"]
         return parsed + unparsed
 
+    def get_compliance_findings_for_node(self, node_id: str, db: Session) -> list[dict]:
+        """PANEL-10 — compliance gaps naming this entity as the violating procedure or the
+        violated regulation. A richer record (severity, explanation, recommendation) than a
+        Connections row can hold, so it gets its own panel section rather than being folded
+        into the generic ledger — same reasoning as the Timeline getting its own section
+        instead of living in Connections (PANEL-8)."""
+        if node_id not in self.G:
+            return []
+        attrs = self.G.nodes[node_id]
+        node_type = attrs.get("type")
+        node_name = (attrs.get("name") or "").strip().lower()
+
+        query = db.query(ComplianceGap).filter(ComplianceGap.verdict.in_(VIOLATION_VERDICTS))
+        if node_type == "regulation_ref":
+            gaps = [g for g in query.all() if (g.regulation_ref or "").strip().lower() == node_name]
+        elif node_type == "procedure_code":
+            document_ids = set(attrs.get("document_ids", []))
+            gaps = [g for g in query.all() if g.matched_procedure_id in document_ids]
+        else:
+            return []
+
+        reg_doc_ids = {g.reg_document_id for g in gaps if g.reg_document_id}
+        docs = {d.id: d for d in db.query(Document).filter(Document.id.in_(reg_doc_ids)).all()}
+        return [
+            {
+                "id": g.id,
+                "regulation_ref": g.regulation_ref,
+                "clause_number": g.clause_number,
+                "verdict": g.verdict,
+                "severity": g.severity,
+                "explanation": g.explanation,
+                "recommendation": g.recommendation,
+                "source_document": docs[g.reg_document_id].filename if g.reg_document_id in docs else None,
+                "source_document_id": g.reg_document_id,
+            }
+            for g in gaps
+        ]
+
 
 # BP-03 step 7 co-occurrence rules: (source_type, target_type, rel_type)
 # Directions read as: SOURCE --REL--> TARGET
@@ -271,6 +314,59 @@ def build_cooccurrence_edges(document_id: str, db: Session) -> int:
                 created += 1
     db.commit()
     logger.info("Co-occurrence rules created %d edges for document %s", created, document_id)
+    return created
+
+
+def build_violates_edges(db: Session) -> int:
+    """GB-3/PANEL-10 — one procedure_code --VIOLATES--> regulation_ref edge per compliance
+    gap, for every gap that names a real regulation entity (matched by exact value, same
+    canonicalization as everywhere else on this graph) and at least one real procedure_code
+    entity in its matched procedure document. A gap that can't be matched to real entities on
+    both ends is skipped outright — PANEL-10 is explicit that this must never fabricate a
+    link the entity graph doesn't actually support.
+
+    Call after every compliance engine run. `run_compliance_check` deletes and recreates
+    every ComplianceGap row each time, so this always clears every prior VIOLATES
+    relationship first — otherwise a regulation fixed by a later procedure revision would
+    keep a stale violation edge forever. Clears both the DB rows and the in-memory graph
+    edges — a bulk DB delete alone leaves the NetworkX graph (which only ever gains edges
+    via add_relationship_edge, never loses them) silently out of sync with the database.
+    """
+    db.query(Relationship).filter_by(rel_type="VIOLATES").delete()
+    stale_edges = [(u, v) for u, v, attrs in graph_builder.G.edges(data=True) if attrs.get("type") == "VIOLATES"]
+    graph_builder.G.remove_edges_from(stale_edges)
+
+    created = 0
+    gaps = db.query(ComplianceGap).filter(ComplianceGap.verdict.in_(VIOLATION_VERDICTS)).all()
+    for gap in gaps:
+        if not gap.matched_procedure_id:
+            continue
+        regulation_node_id = graph_builder.find_node_by_value(gap.regulation_ref)
+        if regulation_node_id is None:
+            continue
+        procedure_entities = (
+            db.query(Entity)
+            .filter_by(entity_type="procedure_code", document_id=gap.matched_procedure_id)
+            .all()
+        )
+        seen_procedure_nodes: set[str] = set()
+        for proc_entity in procedure_entities:
+            proc_node_id = graph_builder._entity_to_node.get(proc_entity.id, proc_entity.id)
+            if proc_node_id in seen_procedure_nodes:
+                continue
+            seen_procedure_nodes.add(proc_node_id)
+            rel = Relationship(
+                id=str(uuid_lib.uuid4()),
+                source_entity_id=proc_entity.id,
+                target_entity_id=regulation_node_id,
+                rel_type="VIOLATES",
+                source_document_id=gap.matched_procedure_id,
+            )
+            db.add(rel)
+            graph_builder.add_relationship_edge(rel)
+            created += 1
+    db.commit()
+    logger.info("Compliance engine linked %d VIOLATES edges from %d gaps", created, len(gaps))
     return created
 
 

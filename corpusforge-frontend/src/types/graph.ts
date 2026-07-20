@@ -57,10 +57,26 @@ export interface TimelineEntry {
   source_document_id: string | null;
 }
 
+// GB-3/PANEL-10 — a compliance gap naming this entity as the violating procedure or the
+// violated regulation, built from a real VIOLATES edge (never fabricated — see
+// build_violates_edges). Richer than a Connections row, so it gets its own panel section.
+export interface ComplianceFinding {
+  id: string;
+  regulation_ref: string;
+  clause_number: string;
+  verdict: string;
+  severity: string;
+  explanation: string;
+  recommendation: string;
+  source_document: string | null;
+  source_document_id: string | null;
+}
+
 export interface NodeDetail {
   entity: GraphNode;
   connected: ConnectedEntity[];
   timeline: TimelineEntry[];
+  compliance: ComplianceFinding[];
 }
 
 // PANEL-9 — synthesis, not evidence; no confidence number is computed for this endpoint

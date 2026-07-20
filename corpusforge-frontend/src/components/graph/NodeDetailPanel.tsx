@@ -1,4 +1,4 @@
-import { ArrowRight, ExternalLink, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ExternalLink, Sparkles, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNodeDetail, useNodeSummary } from '../../hooks/useGraph';
 import { askForgeQuestionFor, NODE_BADGE_COLORS, NODE_COLORS, NODE_TYPE_LABELS, nodeTypeOf } from '../../utils/constants';
@@ -111,6 +111,55 @@ export default function NodeDetailPanel({ entityId, onClose }: NodeDetailPanelPr
                           />
                         </div>
                       )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Compliance (GB-3/PANEL-10) — real, backend-verified violations only (see
+                build_violates_edges); never fabricated against unsupported data, so this
+                section simply doesn't render when there's nothing real to show. */}
+            {data.compliance.length > 0 && (
+              <div className="pt-4">
+                <h3 className="text-2xs font-medium text-text-muted uppercase tracking-wider mb-2">
+                  Compliance
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {data.compliance.map((finding) => (
+                    <div
+                      key={finding.id}
+                      className="border border-accent-orange/40 bg-accent-orange/10 rounded-md p-3"
+                    >
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle size={14} className="text-accent-orange mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-accent-orange-bright">
+                            {finding.severity} · {finding.verdict === 'gap' ? 'Gap' : 'Outdated'}
+                          </p>
+                          <p className="text-xs font-mono text-text-secondary mt-0.5">
+                            {finding.regulation_ref} § {finding.clause_number}
+                          </p>
+                          <p className="text-sm text-text-primary mt-1.5 leading-relaxed">
+                            {finding.explanation}
+                          </p>
+                          {finding.recommendation && (
+                            <p className="text-sm text-text-primary font-medium mt-1.5 leading-relaxed">
+                              {finding.recommendation}
+                            </p>
+                          )}
+                          {finding.source_document && finding.source_document_id && (
+                            <div className="mt-2">
+                              <CitationChip
+                                citation={{
+                                  document_id: finding.source_document_id,
+                                  filename: finding.source_document,
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

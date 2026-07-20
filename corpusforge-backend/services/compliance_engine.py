@@ -25,6 +25,7 @@ from models.compliance_gap import ComplianceGap
 from models.document import Document
 from prompts.clause_comparison import clause_comparison_prompt, clause_extraction_prompt
 from services.embeddings import embedding_service
+from services.graph_builder import build_violates_edges
 from services.vector_store import vector_store
 
 logger = logging.getLogger(__name__)
@@ -304,4 +305,9 @@ def run_compliance_check() -> int:
             )
         db.commit()
         logger.info("Compliance engine stored %d gap rows", len(gaps))
+
+        # GB-3/PANEL-10 — turn genuine violations into real graph edges now that the fresh
+        # gap rows are committed; never fabricated, only built from what matched above.
+        build_violates_edges(db)
+
         return len(gaps)

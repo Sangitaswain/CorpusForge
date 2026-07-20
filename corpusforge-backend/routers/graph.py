@@ -59,6 +59,7 @@ def get_graph_node(entity_id: str, db: Session = Depends(get_db)):
     attrs = graph_builder.G.nodes[entity_id]
     connected = graph_builder.get_neighbours_with_metadata(entity_id, db)
     timeline = graph_builder.get_timeline_for_node(entity_id, db)
+    compliance = graph_builder.get_compliance_findings_for_node(entity_id, db)
     return ok(
         {
             "entity": {
@@ -72,6 +73,7 @@ def get_graph_node(entity_id: str, db: Session = Depends(get_db)):
             },
             "connected": connected,
             "timeline": timeline,
+            "compliance": compliance,
         }
     )
 
