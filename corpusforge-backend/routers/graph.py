@@ -9,6 +9,7 @@ from core.responses import ApiError, ok
 from models.entity import Entity
 from routers.documents import validate_uuid
 from services.graph_builder import graph_builder
+from services.node_summary import get_node_summary
 
 logger = logging.getLogger(__name__)
 
@@ -37,18 +38,23 @@ def search_graph_entities(q: str | None = None):
     return ok(graph_builder.search_entities(query))
 
 
+def resolve_canonical_node_id(entity_id: str, db: Session) -> str:
+    """Any duplicate entity row id maps to a canonical node id (see GraphBuilder)."""
+    if entity_id in graph_builder.G:
+        return entity_id
+    entity_row = db.query(Entity).filter_by(id=entity_id).first()
+    if entity_row is None:
+        raise ApiError(404, "Entity not found.", "not_found")
+    node_id = graph_builder.find_node_by_value(entity_row.normalized_value or entity_row.value)
+    if node_id is None:
+        raise ApiError(404, "Entity not found.", "not_found")
+    return node_id
+
+
 @router.get("/node/{entity_id}")
 def get_graph_node(entity_id: str, db: Session = Depends(get_db)):
     validate_uuid(entity_id)
-    if entity_id not in graph_builder.G:
-        # Fall back to the entity row: any duplicate row id maps to a canonical node
-        entity_row = db.query(Entity).filter_by(id=entity_id).first()
-        if entity_row is None:
-            raise ApiError(404, "Entity not found.", "not_found")
-        node_id = graph_builder.find_node_by_value(entity_row.normalized_value or entity_row.value)
-        if node_id is None:
-            raise ApiError(404, "Entity not found.", "not_found")
-        entity_id = node_id
+    entity_id = resolve_canonical_node_id(entity_id, db)
 
     attrs = graph_builder.G.nodes[entity_id]
     connected = graph_builder.get_neighbours_with_metadata(entity_id, db)
@@ -66,3 +72,12 @@ def get_graph_node(entity_id: str, db: Session = Depends(get_db)):
             "connected": connected,
         }
     )
+
+
+@router.get("/node/{entity_id}/summary")
+def get_graph_node_summary(entity_id: str, db: Session = Depends(get_db)):
+    # PANEL-9 — explicit, user-triggered only; never fired automatically on panel open.
+    # get_node_summary itself caches per entity_id so a repeat view never re-spends quota.
+    validate_uuid(entity_id)
+    entity_id = resolve_canonical_node_id(entity_id, db)
+    return ok(get_node_summary(entity_id, db))

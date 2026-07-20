@@ -1,4 +1,6 @@
+import json
 import uuid
+from unittest.mock import MagicMock, patch
 
 from models.entity import Entity
 from models.relationship import Relationship
@@ -108,11 +110,15 @@ def fresh_graph(test_db, monkeypatch):
     """Reset the shared graph singleton to the (empty) test DB for router tests."""
     import routers.graph as graph_router_module
     import services.graph_builder as gb_module
+    import services.node_summary as node_summary_module
 
     fresh = GraphBuilder()
     fresh.load_from_db(test_db)
     monkeypatch.setattr(gb_module, "graph_builder", fresh)
     monkeypatch.setattr(graph_router_module, "graph_builder", fresh)
+    # services/node_summary.py does `from services.graph_builder import graph_builder` —
+    # a value import, so patching the source module alone doesn't reach this local binding.
+    monkeypatch.setattr(node_summary_module, "graph_builder", fresh)
     return fresh
 
 
@@ -195,3 +201,58 @@ def test_graph_node_detail_lists_connections(test_client, test_db, fresh_graph):
     assert len(data["connected"]) == 1
     assert data["connected"][0]["entity"] == "SOP-07"
     assert data["connected"][0]["relationship"] == "MAINTAINED_BY"
+
+
+def _gemini_response(payload: dict):
+    mock = MagicMock()
+    mock.generate_content.return_value.text = json.dumps(payload)
+    return mock
+
+
+def test_node_summary_endpoint_returns_correct_schema(test_client, test_db, fresh_graph):
+    e = _entity("equipment_tag", "P-101")
+    test_db.add(e)
+    test_db.commit()
+    fresh_graph.load_from_db(test_db)
+    gemini = _gemini_response({"summary": "P-101 is a pump.", "recommended_next_step": "Review SOP-07."})
+    with patch("services.node_summary.gemini_model", gemini):
+        response = test_client.get(f"/api/v1/graph/node/{e.id}/summary")
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["summary"] == "P-101 is a pump."
+    assert data["recommended_next_step"] == "Review SOP-07."
+
+
+def test_node_summary_is_cached_across_requests(test_client, test_db, fresh_graph):
+    e = _entity("equipment_tag", "P-101")
+    test_db.add(e)
+    test_db.commit()
+    fresh_graph.load_from_db(test_db)
+    gemini = _gemini_response({"summary": "P-101 is a pump.", "recommended_next_step": "Review SOP-07."})
+    import services.node_summary as node_summary_module
+
+    node_summary_module._cache.clear()
+    with patch("services.node_summary.gemini_model", gemini):
+        test_client.get(f"/api/v1/graph/node/{e.id}/summary")
+        test_client.get(f"/api/v1/graph/node/{e.id}/summary")
+    assert gemini.generate_content.call_count == 1
+
+
+def test_node_summary_returns_502_on_gemini_failure(test_client, test_db, fresh_graph):
+    e = _entity("equipment_tag", "P-101")
+    test_db.add(e)
+    test_db.commit()
+    fresh_graph.load_from_db(test_db)
+    gemini = MagicMock()
+    gemini.generate_content.side_effect = RuntimeError("boom")
+    import services.node_summary as node_summary_module
+
+    node_summary_module._cache.clear()
+    with patch("services.node_summary.gemini_model", gemini):
+        response = test_client.get(f"/api/v1/graph/node/{e.id}/summary")
+    assert response.status_code == 502
+
+
+def test_node_summary_endpoint_validates_uuid(test_client, fresh_graph):
+    response = test_client.get("/api/v1/graph/node/not-a-uuid/summary")
+    assert response.status_code == 400
