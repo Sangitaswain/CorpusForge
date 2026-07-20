@@ -1,7 +1,7 @@
 import { ArrowRight, ExternalLink, Sparkles, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNodeDetail, useNodeSummary } from '../../hooks/useGraph';
-import { askForgeQuestionFor, NODE_COLORS, NODE_TYPE_LABELS, nodeTypeOf } from '../../utils/constants';
+import { askForgeQuestionFor, NODE_BADGE_COLORS, NODE_COLORS, NODE_TYPE_LABELS, nodeTypeOf } from '../../utils/constants';
 import { castNumber } from '../../utils/castNumber';
 import BatchMark from '../shared/BatchMark';
 import CitationChip from '../shared/CitationChip';
@@ -32,7 +32,7 @@ export default function NodeDetailPanel({ entityId, onClose }: NodeDetailPanelPr
               <div className="flex items-center gap-2 mt-1.5">
                 <span
                   className="text-xs font-medium px-2 py-0.5 rounded-full text-white"
-                  style={{ backgroundColor: NODE_COLORS[nodeTypeOf(data.entity.type)] }}
+                  style={{ backgroundColor: NODE_BADGE_COLORS[nodeTypeOf(data.entity.type)] }}
                 >
                   {NODE_TYPE_LABELS[nodeTypeOf(data.entity.type)]}
                 </span>

@@ -19,3 +19,19 @@ export const NODE_PALETTE: Record<NodeType, string> = {
   parameter: '#7C838C',
   other: '#7C838C',
 };
+
+// A11Y-4 — three NODE_PALETTE hues (procedure, person, date/parameter/other) fall short of
+// 4.5:1 against solid white badge text (verified: 4.15:1, 3.54:1, 3.83:1). NODE_PALETTE
+// itself can't change to fix this — it's fixed by design across both themes and also drives
+// canvas node fills, where these exact hues matter (IDENT-4). This is a minimally-darkened,
+// badge-only variant for the one DOM context that overlays solid white text on a node color
+// (NodeDetailPanel/WorkOrderEvidencePanel type badges) — canvas rendering and legend/filter
+// swatches keep using NODE_PALETTE unchanged.
+export const NODE_BADGE_TEXT_SAFE_PALETTE: Record<NodeType, string> = {
+  ...NODE_PALETTE,
+  procedure: '#1C8383',
+  person: '#1E7E96',
+  date: '#6F767F',
+  parameter: '#6F767F',
+  other: '#6F767F',
+};

@@ -1,10 +1,14 @@
 import type { NodeType } from '../types/graph';
 import type { DocumentType } from '../types/document';
-import { NODE_PALETTE } from '../constants/nodePalette';
+import { NODE_BADGE_TEXT_SAFE_PALETTE, NODE_PALETTE } from '../constants/nodePalette';
 
 // Knowledge_Graph_Design_Bible.md NODE-6 — sourced from NODE_PALETTE, the single
 // source of truth also consumed by tailwind.config.ts. Do not hardcode these values here.
 export const NODE_COLORS: Record<NodeType, string> = NODE_PALETTE;
+
+// A11Y-4 — use this instead of NODE_COLORS anywhere solid white text sits directly on a
+// node color (badges), never on the canvas itself or legend/filter swatches.
+export const NODE_BADGE_COLORS: Record<NodeType, string> = NODE_BADGE_TEXT_SAFE_PALETTE;
 
 // Backend entity_type values → canvas node types.
 // Knowledge_Graph_Design_Bible.md NODE-4 — date and parameter get their own honest

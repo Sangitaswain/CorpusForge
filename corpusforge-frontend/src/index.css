@@ -30,7 +30,10 @@
 
   --color-text-primary: 20 23 26;     /* neutral-900 #14171A */
   --color-text-secondary: 86 93 102;  /* neutral-600 #565D66 */
-  --color-text-muted: 124 131 140;    /* neutral-500 #7C838C */
+  /* A11Y-4 — neutral-500 (#7C838C) on white is 3.83:1, below the 4.5:1 text minimum;
+     darkened to #6F767F (4.59:1) for this token specifically. Other neutral-500 usages
+     (e.g. the date/parameter/other node color) are untouched. */
+  --color-text-muted: 111 118 127;    /* #6F767F, darkened from neutral-500 #7C838C */
   --color-text-disabled: 166 172 180; /* neutral-400 #A6ACB4 */
 
   /* Interactive — the one signal reserved for anything clickable. */
