@@ -16,6 +16,7 @@ import NodeDetailPanel from '../components/graph/NodeDetailPanel';
 import WorkOrderEvidencePanel from '../components/graph/WorkOrderEvidencePanel';
 import EmptyState from '../components/shared/EmptyState';
 import ErrorBanner from '../components/shared/ErrorBanner';
+import FirefoxNotice from '../components/shared/FirefoxNotice';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import { nodeTypeOf } from '../utils/constants';
 
@@ -169,6 +170,7 @@ export default function GraphPage() {
         <p className="text-sm text-text-muted mt-1">
           Every entity extracted from your documents, connected by how they relate — trace a failure back to the work order and technician behind it.
         </p>
+        <FirefoxNotice />
         {/* IA-6 — the investigation trail: every entity that's been the Anvil Point this
             session, in order. Persists across lens switches and navigating away and back
             (sessionStorage in useInvestigationTrail), so it only shows once there's a real
