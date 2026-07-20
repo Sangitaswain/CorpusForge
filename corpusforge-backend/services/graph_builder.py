@@ -9,6 +9,7 @@ import logging
 import uuid as uuid_lib
 
 import networkx as nx
+from dateutil import parser as date_parser
 from sqlalchemy.orm import Session
 
 from models.document import Document
@@ -105,6 +106,14 @@ class GraphBuilder:
                     {focus_id} | set(self.G.neighbors(focus_id)) | set(self.G.predecessors(focus_id))
                 )
                 G_sub = self.G.subgraph(subgraph_nodes)
+        # NODE-4 — `date` entities are never drawn as floating canvas nodes; they surface
+        # only through the Coordinate Rail (PANEL-8, get_timeline_for_node), which reads
+        # them straight from the DB rather than from graph edges.
+        drawable_nodes = [(nid, a) for nid, a in G_sub.nodes(data=True) if a.get("type") != "date"]
+        drawable_ids = {nid for nid, _ in drawable_nodes}
+        drawable_links = [
+            (u, v, a) for u, v, a in G_sub.edges(data=True) if u in drawable_ids and v in drawable_ids
+        ]
         return {
             "nodes": [
                 {
@@ -117,7 +126,7 @@ class GraphBuilder:
                     # the frontend render a "+N more" affordance honestly instead of guessing.
                     "degree": len(set(self.G.neighbors(node_id)) | set(self.G.predecessors(node_id))),
                 }
-                for node_id, attrs in G_sub.nodes(data=True)
+                for node_id, attrs in drawable_nodes
             ],
             "links": [
                 {
@@ -126,10 +135,10 @@ class GraphBuilder:
                     "type": attrs.get("type"),
                     "document_id": attrs.get("document_id"),
                 }
-                for u, v, attrs in G_sub.edges(data=True)
+                for u, v, attrs in drawable_links
             ],
-            "node_count": G_sub.number_of_nodes(),
-            "edge_count": G_sub.number_of_edges(),
+            "node_count": len(drawable_nodes),
+            "edge_count": len(drawable_links),
         }
 
     def get_neighbours_with_metadata(self, node_id: str, db: Session) -> list[dict]:
@@ -159,6 +168,53 @@ class GraphBuilder:
                 }
             )
         return result
+
+    def get_timeline_for_node(self, node_id: str, db: Session) -> list[dict]:
+        """PANEL-8 — the Coordinate Rail: `date` entities co-occurring with the focus,
+        most recent first. "Co-occurring" means sharing a source document with the focus
+        entity, same as every other co-occurrence relationship on this graph (BP-03 step
+        7) — dates just never get a drawn edge for it (NODE-4)."""
+        if node_id not in self.G:
+            return []
+        document_ids = set(self.G.nodes[node_id].get("document_ids", []))
+        if not document_ids:
+            return []
+        date_entities = (
+            db.query(Entity)
+            .filter(Entity.entity_type == "date", Entity.document_id.in_(document_ids))
+            .all()
+        )
+        doc_cache: dict[str, Document | None] = {}
+        entries = []
+        for entity in date_entities:
+            if entity.document_id not in doc_cache:
+                doc_cache[entity.document_id] = db.query(Document).filter_by(id=entity.document_id).first()
+            doc = doc_cache[entity.document_id]
+            label = entity.normalized_value or entity.value
+            try:
+                # Entity extraction already isolated the date string, so this must parse
+                # as a clean date on its own — `fuzzy=True` would happily pull a bogus
+                # date out of unrelated digits in genuinely non-date text.
+                sort_key = date_parser.parse(label)
+            except (ValueError, OverflowError):
+                sort_key = None
+            entries.append(
+                {
+                    "id": entity.id,
+                    "label": label,
+                    "sort_date": sort_key.date().isoformat() if sort_key else None,
+                    "source_document": doc.filename if doc else None,
+                    "source_document_id": doc.id if doc else None,
+                    "_sort_key": sort_key,
+                }
+            )
+        # Unparseable dates are low-priority context (NODE-4) — sorted after every real date.
+        parsed = [e for e in entries if e["_sort_key"] is not None]
+        unparsed = [e for e in entries if e["_sort_key"] is None]
+        parsed.sort(key=lambda e: e["_sort_key"], reverse=True)
+        for e in parsed + unparsed:
+            del e["_sort_key"]
+        return parsed + unparsed
 
 
 # BP-03 step 7 co-occurrence rules: (source_type, target_type, rel_type)

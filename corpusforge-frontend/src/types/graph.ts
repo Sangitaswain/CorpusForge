@@ -46,9 +46,21 @@ export interface ConnectedEntity {
   source_document_id: string | null;
 }
 
+// PANEL-8 — a Coordinate Rail entry: a `date` entity co-occurring with the focus (sharing a
+// source document), never a floating canvas node (NODE-4). `sort_date` is null when the
+// backend couldn't parse the raw label into a real date — those sort last, not first.
+export interface TimelineEntry {
+  id: string;
+  label: string;
+  sort_date: string | null;
+  source_document: string | null;
+  source_document_id: string | null;
+}
+
 export interface NodeDetail {
   entity: GraphNode;
   connected: ConnectedEntity[];
+  timeline: TimelineEntry[];
 }
 
 // PANEL-9 — synthesis, not evidence; no confidence number is computed for this endpoint

@@ -83,6 +83,40 @@ export default function NodeDetailPanel({ entityId, onClose }: NodeDetailPanelPr
               ))}
             </div>
 
+            {/* Coordinate Rail (PANEL-8/IDENT-2) — `date` entities co-occurring with the
+                focus, most recent first (already sorted by the backend). Dates never render
+                as floating canvas nodes (NODE-4); this panel strip is their only surface. */}
+            {data.timeline.length > 0 && (
+              <div className="pt-4">
+                <h3 className="text-2xs font-medium text-text-muted uppercase tracking-wider mb-2">
+                  Timeline
+                </h3>
+                <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
+                  {data.timeline.map((entry) => (
+                    <div key={entry.id} className="flex flex-col items-start shrink-0 min-w-[110px]">
+                      <div className="w-full flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-teal shrink-0" aria-hidden="true" />
+                        <span className="h-px flex-1 bg-border-default" aria-hidden="true" />
+                      </div>
+                      <p className="font-mono text-xs text-text-primary mt-1.5 whitespace-nowrap">
+                        {entry.label}
+                      </p>
+                      {entry.source_document && entry.source_document_id && (
+                        <div className="mt-1">
+                          <CitationChip
+                            citation={{
+                              document_id: entry.source_document_id,
+                              filename: entry.source_document,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Forge Line (PANEL-4) — a heavier rule with a small "EVIDENCE" notch label,
                 marking the transition from cited connections above to AI synthesis below. */}
             <div className="relative border-t-2 border-border-strong mt-2">

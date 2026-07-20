@@ -102,6 +102,59 @@ def test_cooccurrence_rules_create_edges(test_db, monkeypatch):
     assert build_cooccurrence_edges("doc1", test_db) == 0
 
 
+def test_date_entities_excluded_from_frontend_json(test_db):
+    e1 = _entity("equipment_tag", "P-101")
+    e2 = _entity("date", "15 July 2022")
+    test_db.add_all([e1, e2])
+    test_db.commit()
+    builder = GraphBuilder()
+    builder.load_from_db(test_db)
+    result = builder.to_frontend_json()
+    # NODE-4 — date entities are never drawn as floating canvas nodes.
+    assert result["node_count"] == 1
+    assert all(n["type"] != "date" for n in result["nodes"])
+
+
+def test_timeline_returns_dates_from_same_document_sorted_most_recent_first(test_db):
+    equipment = _entity("equipment_tag", "P-101", doc="doc1")
+    date_old = _entity("date", "10 July 2022", doc="doc1")
+    date_new = _entity("date", "25 July 2022", doc="doc1")
+    date_other_doc = _entity("date", "01 January 2020", doc="doc2")
+    test_db.add_all([equipment, date_old, date_new, date_other_doc])
+    test_db.commit()
+    builder = GraphBuilder()
+    builder.load_from_db(test_db)
+
+    timeline = builder.get_timeline_for_node(equipment.id, test_db)
+
+    assert [t["label"] for t in timeline] == ["25 July 2022", "10 July 2022"]
+    assert timeline[0]["sort_date"] == "2022-07-25"
+
+
+def test_timeline_puts_unparseable_dates_last(test_db):
+    equipment = _entity("equipment_tag", "P-101", doc="doc1")
+    good = _entity("date", "10 July 2022", doc="doc1")
+    garbage = _entity("date", "not-a-real-date-xyz-999", doc="doc1")
+    test_db.add_all([equipment, good, garbage])
+    test_db.commit()
+    builder = GraphBuilder()
+    builder.load_from_db(test_db)
+
+    timeline = builder.get_timeline_for_node(equipment.id, test_db)
+
+    assert timeline[-1]["label"] == "not-a-real-date-xyz-999"
+    assert timeline[-1]["sort_date"] is None
+
+
+def test_timeline_empty_for_node_with_no_dates(test_db):
+    equipment = _entity("equipment_tag", "P-101")
+    test_db.add(equipment)
+    test_db.commit()
+    builder = GraphBuilder()
+    builder.load_from_db(test_db)
+    assert builder.get_timeline_for_node(equipment.id, test_db) == []
+
+
 import pytest
 
 
@@ -256,3 +309,18 @@ def test_node_summary_returns_502_on_gemini_failure(test_client, test_db, fresh_
 def test_node_summary_endpoint_validates_uuid(test_client, fresh_graph):
     response = test_client.get("/api/v1/graph/node/not-a-uuid/summary")
     assert response.status_code == 400
+
+
+def test_graph_node_detail_includes_timeline(test_client, test_db, fresh_graph):
+    equipment = _entity("equipment_tag", "P-101", doc="doc1")
+    date_entry = _entity("date", "15 July 2022", doc="doc1")
+    test_db.add_all([equipment, date_entry])
+    test_db.commit()
+    fresh_graph.load_from_db(test_db)
+
+    response = test_client.get(f"/api/v1/graph/node/{equipment.id}")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data["timeline"]) == 1
+    assert data["timeline"][0]["label"] == "15 July 2022"
