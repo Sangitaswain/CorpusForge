@@ -51,6 +51,13 @@ export interface NodeDetail {
   connected: ConnectedEntity[];
 }
 
+// PANEL-9 — synthesis, not evidence; no confidence number is computed for this endpoint
+// (unlike Ask Forge answers), so the panel must not fabricate a Temper Arc for it (PANEL-7).
+export interface NodeSummary {
+  summary: string;
+  recommended_next_step: string;
+}
+
 // SEARCH-2 — one autocomplete match; type is the raw backend entity_type, map via nodeTypeOf().
 export interface NodeSearchResult {
   id: string;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getGraph, getNodeDetail, searchGraphEntities } from '../api/graph';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { getGraph, getNodeDetail, getNodeSummary, searchGraphEntities } from '../api/graph';
 
 // Knowledge_Graph_Design_Bible.md IA-1 — the graph never loads a full, unfocused view by
 // default. `enabled` must be false until a focus exists or the user has explicitly opted
@@ -19,6 +19,14 @@ export function useNodeDetail(entityId: string | null) {
     queryKey: ['graph-node', entityId],
     queryFn: () => getNodeDetail(entityId!),
     enabled: entityId !== null,
+  });
+}
+
+// PANEL-9 — a mutation, not a query: the summary must only fire on an explicit user
+// click, never automatically when the panel opens or the entity changes.
+export function useNodeSummary() {
+  return useMutation({
+    mutationFn: (entityId: string) => getNodeSummary(entityId),
   });
 }
 

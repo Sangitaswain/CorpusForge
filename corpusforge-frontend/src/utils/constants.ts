@@ -36,6 +36,24 @@ export function nodeTypeOf(entityType: string): NodeType {
   return ENTITY_TYPE_TO_NODE_TYPE[entityType] ?? 'other';
 }
 
+// Knowledge_Graph_Design_Bible.md PANEL-9 — the Ask Forge deep-link's pre-filled question
+// is entity-type-aware, never one generic template for every node.
+export const ASK_FORGE_QUESTION_TEMPLATES: Record<NodeType, (name: string) => string> = {
+  equipment: (name) => `What incidents, work orders, or procedures are linked to ${name}?`,
+  incident: (name) => `What caused ${name} and how was it resolved?`,
+  procedure: (name) => `Summarize the key steps and safety requirements in ${name}.`,
+  regulation: (name) => `What equipment or procedures must comply with ${name}?`,
+  person: (name) => `What incidents, work orders, or procedures is ${name} involved in?`,
+  work_order: (name) => `What was the outcome of ${name} and what equipment did it affect?`,
+  date: (name) => `What happened on ${name}?`,
+  parameter: (name) => `What is the safe operating range for ${name}, and where has it been exceeded?`,
+  other: (name) => `Tell me everything about ${name}.`,
+};
+
+export function askForgeQuestionFor(entityType: string, name: string): string {
+  return ASK_FORGE_QUESTION_TEMPLATES[nodeTypeOf(entityType)](name);
+}
+
 export const DOC_TYPE_LABELS: Record<DocumentType, string> = {
   manual: 'Manual',
   sop: 'SOP',

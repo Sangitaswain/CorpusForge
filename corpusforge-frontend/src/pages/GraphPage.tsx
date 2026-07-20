@@ -253,7 +253,9 @@ export default function GraphPage() {
               <GraphControls graphRef={graphRef} />
             </div>
             {selectedNodeId && (
-              <NodeDetailPanel entityId={selectedNodeId} onClose={() => setSelectedNodeId(null)} />
+              // key forces a remount on node switch so per-node local state (e.g. the
+              // PANEL-9 AI Summary mutation) never leaks the previous entity's result.
+              <NodeDetailPanel key={selectedNodeId} entityId={selectedNodeId} onClose={() => setSelectedNodeId(null)} />
             )}
           </>
         )}

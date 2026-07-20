@@ -1,7 +1,7 @@
-import { ArrowRight, ExternalLink, X } from 'lucide-react';
+import { ArrowRight, ExternalLink, Sparkles, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useNodeDetail } from '../../hooks/useGraph';
-import { NODE_COLORS, NODE_TYPE_LABELS, nodeTypeOf } from '../../utils/constants';
+import { useNodeDetail, useNodeSummary } from '../../hooks/useGraph';
+import { askForgeQuestionFor, NODE_COLORS, NODE_TYPE_LABELS, nodeTypeOf } from '../../utils/constants';
 import { castNumber } from '../../utils/castNumber';
 import BatchMark from '../shared/BatchMark';
 import CitationChip from '../shared/CitationChip';
@@ -14,6 +14,7 @@ interface NodeDetailPanelProps {
 
 export default function NodeDetailPanel({ entityId, onClose }: NodeDetailPanelProps) {
   const { data, isLoading } = useNodeDetail(entityId);
+  const summary = useNodeSummary();
   const navigate = useNavigate();
 
   return (
@@ -81,10 +82,62 @@ export default function NodeDetailPanel({ entityId, onClose }: NodeDetailPanelPr
                 </div>
               ))}
             </div>
+
+            {/* Forge Line (PANEL-4) — a heavier rule with a small "EVIDENCE" notch label,
+                marking the transition from cited connections above to AI synthesis below. */}
+            <div className="relative border-t-2 border-border-strong mt-2">
+              <span className="absolute -top-2.5 left-3 bg-bg-surface px-1.5 text-2xs font-medium tracking-wider text-text-muted uppercase">
+                Evidence
+              </span>
+            </div>
+
+            {/* AI Summary (PANEL-9) — explicit-trigger only; never fires on panel open.
+                No Temper Arc here: this endpoint has no real confidence number (PANEL-7),
+                unlike Ask Forge answers, so a confidence indicator would be fabricated. */}
+            <div className="pt-5 pb-2">
+              <h3 className="text-2xs font-medium text-text-muted uppercase tracking-wider mb-2">AI Summary</h3>
+              {summary.data ? (
+                <p className="text-sm text-text-primary leading-relaxed">{summary.data.summary}</p>
+              ) : summary.isPending ? (
+                <LoadingSpinner />
+              ) : summary.isError ? (
+                <div className="text-sm text-status-danger">
+                  <p>{summary.error instanceof Error ? summary.error.message : 'Something went wrong.'}</p>
+                  <button
+                    onClick={() => summary.mutate(data.entity.id)}
+                    className="mt-1.5 text-accent-teal hover:underline font-medium"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => summary.mutate(data.entity.id)}
+                  className="inline-flex items-center gap-1.5 text-sm text-accent-teal hover:underline min-h-[44px] sm:min-h-0"
+                >
+                  <Sparkles size={14} /> Generate AI Summary
+                </button>
+              )}
+            </div>
+
+            {summary.data?.recommended_next_step && (
+              <div className="pb-4">
+                <h3 className="text-2xs font-medium text-text-muted uppercase tracking-wider mb-1">
+                  Recommended Next Step
+                </h3>
+                <p className="text-sm text-text-primary font-medium leading-relaxed">
+                  {summary.data.recommended_next_step}
+                </p>
+              </div>
+            )}
           </div>
           <div className="p-4">
             <button
-              onClick={() => navigate('/ask-forge', { state: { question: `Tell me everything about ${data.entity.name}` } })}
+              onClick={() =>
+                navigate('/ask-forge', {
+                  state: { question: askForgeQuestionFor(data.entity.type, data.entity.name) },
+                })
+              }
               className="w-full inline-flex items-center justify-center gap-2 border border-accent-teal text-accent-teal hover:bg-accent-teal-wash px-4 py-2 rounded-md text-sm font-medium transition-fast min-h-[44px]"
             >
               <ExternalLink size={14} /> Ask Forge
