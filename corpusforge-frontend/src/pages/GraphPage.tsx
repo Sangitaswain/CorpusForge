@@ -119,14 +119,21 @@ export default function GraphPage() {
 
   // IA-5/IA-4 — expand pulls this node's own further neighbors into the current view without
   // touching `focus`, so the board doesn't recenter or replace what's already pinned.
+  // `pendingExpansions` guards against two rapid triggers for the same node both firing:
+  // `expansions[node.id]` alone only dedupes after the first request resolves, so a second
+  // click within that window would start a duplicate fetch.
+  const pendingExpansions = useRef<Set<string>>(new Set());
   const handleExpandNode = async (node: GraphNode) => {
-    if (expansions[node.id]) return;
+    if (expansions[node.id] || pendingExpansions.current.has(node.id)) return;
+    pendingExpansions.current.add(node.id);
     try {
       const expansion = await getGraph(node.name);
       setExpansions((prev) => ({ ...prev, [node.id]: expansion }));
     } catch {
       // Best-effort — the "+N more" badge simply stays put for a retry; no error surface
       // needed for a supplementary reveal action.
+    } finally {
+      pendingExpansions.current.delete(node.id);
     }
   };
 

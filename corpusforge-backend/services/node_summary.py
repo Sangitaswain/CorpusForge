@@ -58,7 +58,9 @@ def get_node_summary(entity_id: str, db: Session) -> dict:
         )
         raw_text = response.text
     except Exception:
-        logger.exception("Gemini call failed for node summary %s", entity_id)
+        # SO-05 — never log internal IDs; the stack trace from logger.exception is enough
+        # to debug a Gemini failure without naming which entity triggered it.
+        logger.exception("Gemini call failed for node summary request")
         raise ApiError(502, "The AI summary service is temporarily unavailable. Please try again.", "llm_unavailable")
 
     parsed = parse_summary_response(raw_text)

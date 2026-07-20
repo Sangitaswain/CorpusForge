@@ -184,12 +184,16 @@ class GraphBuilder:
             .filter(Entity.entity_type == "date", Entity.document_id.in_(document_ids))
             .all()
         )
-        doc_cache: dict[str, Document | None] = {}
+        # One batched query for every source document instead of one query per unique
+        # document_id — an entity spans few documents in practice, but there's no reason to
+        # pay N round trips for it.
+        entity_doc_ids = {e.document_id for e in date_entities}
+        doc_cache: dict[str, Document] = {
+            doc.id: doc for doc in db.query(Document).filter(Document.id.in_(entity_doc_ids)).all()
+        }
         entries = []
         for entity in date_entities:
-            if entity.document_id not in doc_cache:
-                doc_cache[entity.document_id] = db.query(Document).filter_by(id=entity.document_id).first()
-            doc = doc_cache[entity.document_id]
+            doc = doc_cache.get(entity.document_id)
             label = entity.normalized_value or entity.value
             try:
                 # Entity extraction already isolated the date string, so this must parse
