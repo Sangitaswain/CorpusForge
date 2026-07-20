@@ -171,19 +171,12 @@ export default function GraphCanvas({
   // mathematically centered; COMP-11 — replaces `zoomToFit` as the composition strategy.
   // Lens layouts are centered on the anchor at graph-space (0,0); `centerAt` always puts a
   // point at screen-center, so the camera target is offset by the 50%→40% delta instead.
-  // IA-3 — "browse all" has no single Anvil Point to offset from and no fixed extent (the
-  // component grid grows with corpus size), so it uses the library's own zoomToFit against
-  // the grid computeBrowseAllLayout already laid out deliberately, rather than a fixed
-  // per-lens zoom tuned for a single ego-network.
+  // Deliberately NOT keyed on `data`/`graphNodes` — IA-5's expand pulls further neighbors
+  // into an already-focused board without recentering or rezooming what's pinned (see
+  // handleExpandNode in GraphPage.tsx).
   useEffect(() => {
     const fg = graphRef.current;
-    if (!fg || !width) return;
-    if (!anchorId) {
-      // Wait out the settle tween (below) first — zoomToFit reads current node positions
-      // once, so firing it before nodes reach their grid targets fits the wrong bounds.
-      const timer = setTimeout(() => fg.zoomToFit(STRUCTURAL_SETTLE_MS, 60), STRUCTURAL_SETTLE_MS + 20);
-      return () => clearTimeout(timer);
-    }
+    if (!fg || !width || !anchorId) return;
     const zoom = LENS_ZOOM[lens];
     const offsetX = (width * 0.1) / zoom;
     const timer = setTimeout(() => {
@@ -192,6 +185,22 @@ export default function GraphCanvas({
     }, 20);
     return () => clearTimeout(timer);
   }, [lens, anchorId, width, graphRef]);
+
+  // IA-3 — "browse all" has no single Anvil Point to offset from and no fixed extent (the
+  // component grid grows with corpus size, and shrinks as type filters hide nodes), so it
+  // uses the library's own zoomToFit against whatever computeBrowseAllLayout currently laid
+  // out, rather than a fixed per-lens zoom tuned for a single ego-network. Keyed on
+  // `graphNodes` (unlike the effect above) specifically so toggling a GraphFilters chip
+  // re-fits the camera to the now-smaller drawn set instead of leaving it framed for nodes
+  // that are no longer on screen.
+  useEffect(() => {
+    const fg = graphRef.current;
+    if (!fg || !width || anchorId) return;
+    // Wait out the settle tween (below) first — zoomToFit reads current node positions
+    // once, so firing it before nodes reach their grid targets fits the wrong bounds.
+    const timer = setTimeout(() => fg.zoomToFit(STRUCTURAL_SETTLE_MS, 60), STRUCTURAL_SETTLE_MS + 20);
+    return () => clearTimeout(timer);
+  }, [anchorId, width, graphRef, graphNodes]);
 
   // IA-4 — a node's total real connections (`degree`) vs. how many are actually drawn in
   // this view. A gap means "+N more" is honest, not a per-node extra fetch.

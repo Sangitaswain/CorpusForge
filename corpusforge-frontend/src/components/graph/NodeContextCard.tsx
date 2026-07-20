@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Crosshair, Layers } from 'lucide-react';
 import type { GraphNode } from '../../types/graph';
 
@@ -21,6 +21,23 @@ const INNER_CLIP = 'polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%
 export default function NodeContextCard({ node, renderedDegree, x, y, onExpand, onSetFocus, onClose }: NodeContextCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const moreCount = Math.max(node.degree - renderedDegree, 0);
+  // A right-click near the canvas's right/bottom edge must not render this card partially
+  // off-screen — clamp against its own measured size once mounted rather than guessing a
+  // fixed width/height up front (the button label's length varies with `moreCount`).
+  const [position, setPosition] = useState({ left: x, top: y });
+
+  // Layout effect, not a plain effect — runs before paint, so the card never flashes at the
+  // unclamped click position before snapping onscreen.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const { width: cardWidth, height: cardHeight } = el.getBoundingClientRect();
+    const margin = 8;
+    setPosition({
+      left: Math.min(x, window.innerWidth - cardWidth - margin),
+      top: Math.min(y, window.innerHeight - cardHeight - margin),
+    });
+  }, [x, y]);
 
   useEffect(() => {
     const onPointerDown = (e: MouseEvent) => {
@@ -43,7 +60,7 @@ export default function NodeContextCard({ node, renderedDegree, x, y, onExpand, 
       role="menu"
       aria-label={`Investigation actions for ${node.name}`}
       className="fixed z-30 w-56"
-      style={{ left: x, top: y }}
+      style={{ left: position.left, top: position.top }}
     >
       <div className="relative" style={{ clipPath: OUTER_CLIP }}>
         <div className="bg-border-default p-px" style={{ clipPath: OUTER_CLIP }}>

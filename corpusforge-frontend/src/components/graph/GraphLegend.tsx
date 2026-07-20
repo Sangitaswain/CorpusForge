@@ -1,8 +1,11 @@
 import type { NodeType } from '../../types/graph';
 import { NODE_COLORS, NODE_TYPE_LABELS } from '../../utils/constants';
 
+// NODE-4/PANEL-8 — `date` is deliberately absent: dates never render as canvas nodes (they
+// surface only via the NodeDetailPanel Timeline/Coordinate Rail), so a legend swatch for
+// them would misleadingly imply otherwise.
 const LEGEND_TYPES: NodeType[] = [
-  'equipment', 'incident', 'procedure', 'regulation', 'person', 'work_order', 'date', 'parameter', 'other',
+  'equipment', 'incident', 'procedure', 'regulation', 'person', 'work_order', 'parameter', 'other',
 ];
 
 export default function GraphLegend() {

@@ -1,8 +1,11 @@
 import type { NodeType } from '../../types/graph';
 import { NODE_COLORS, NODE_TYPE_LABELS } from '../../utils/constants';
 
+// NODE-4/PANEL-8 — `date` is deliberately absent: dates never render as canvas nodes (they
+// surface only via the NodeDetailPanel Timeline/Coordinate Rail), so a filter chip for them
+// would toggle a `hiddenTypes` entry that never hides anything.
 const FILTERABLE: NodeType[] = [
-  'equipment', 'incident', 'procedure', 'regulation', 'person', 'work_order', 'date', 'parameter', 'other',
+  'equipment', 'incident', 'procedure', 'regulation', 'person', 'work_order', 'parameter', 'other',
 ];
 
 interface GraphFiltersProps {
