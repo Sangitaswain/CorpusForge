@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MutableRefObject } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, MutableRefObject } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods, NodeObject } from 'react-force-graph-2d';
 import type { GraphData, GraphLink, GraphNode } from '../../types/graph';
@@ -60,6 +60,11 @@ export default function GraphCanvas({
   const palette = CANVAS_PALETTE[theme];
 
   const [contextTarget, setContextTarget] = useState<{ node: CanvasNode; x: number; y: number } | null>(null);
+
+  // A11Y-2/COMP-3 — a roving-tabindex model: the canvas is a single tab stop, and once
+  // focused, arrow keys move a keyboard focus ring between nodes (independent of mouse
+  // selection). Cleared on blur so the ring never lingers after focus moves elsewhere.
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
 
   // GB-1 — the lens is chosen by the anchor entity's type (the currently-selected node if
   // one is pinned as the Anvil Point this session, else the search focus). Never a manual
@@ -181,8 +186,67 @@ export default function GraphCanvas({
     return m;
   }, [data]);
 
+  const focusedNode = graphNodes.find((n) => n.id === focusedNodeId) as CanvasNode | undefined;
+
+  // A11Y-2 — Tab into the canvas picks up the current Anvil Point (or the first node); arrow
+  // keys then rove between nodes in the currently-drawn set; Enter/Space activates the same
+  // gesture as a click (IA-5's "select" meaning, never "expand" — that stays a distinct,
+  // deliberate secondary gesture).
+  const handleCanvasFocus = () => {
+    if (focusedNodeId && graphNodes.some((n) => n.id === focusedNodeId)) return;
+    setFocusedNodeId(anchorId ?? (graphNodes[0] as CanvasNode | undefined)?.id ?? null);
+  };
+  const handleCanvasBlur = () => setFocusedNodeId(null);
+  const handleCanvasKeyDown = (event: ReactKeyboardEvent) => {
+    if (graphNodes.length === 0) return;
+    const currentIndex = graphNodes.findIndex((n) => n.id === focusedNodeId);
+    const advance = (delta: number) => {
+      const from = currentIndex === -1 ? 0 : currentIndex;
+      const next = (from + delta + graphNodes.length) % graphNodes.length;
+      setFocusedNodeId((graphNodes[next] as CanvasNode).id);
+    };
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        event.preventDefault();
+        advance(1);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        event.preventDefault();
+        advance(-1);
+        break;
+      case 'Enter':
+      case ' ':
+        if (focusedNode) {
+          event.preventDefault();
+          onSelectNode(focusedNode);
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
-    <>
+    <div
+      tabIndex={0}
+      role="application"
+      aria-label={`Knowledge graph canvas. ${
+        focusedNode ? `Focused on ${focusedNode.name}.` : ''
+      } Use arrow keys to move between nodes, Enter to select.`}
+      onFocus={handleCanvasFocus}
+      onBlur={handleCanvasBlur}
+      onKeyDown={handleCanvasKeyDown}
+      className="outline-none focus-visible:outline-none"
+      style={{ width, height }}
+    >
+      {/* A11Y-2 — the visible focus indicator lives on the canvas itself (drawn as a dashed
+          ring in nodeCanvasObject, COMP-3), so the wrapper's own outline is suppressed above
+          rather than doubling up with a generic box outline around the whole widget. */}
+      <span className="sr-only" aria-live="polite">
+        {focusedNode ? `${focusedNode.name}, ${nodeTypeOf(focusedNode.type)}` : ''}
+      </span>
       <ForceGraph2D
         ref={graphRef}
         width={width}
@@ -254,6 +318,19 @@ export default function GraphCanvas({
           ctx.fillStyle = color;
           ctx.fill();
 
+          // A11Y-2/COMP-3 — the roving-tabindex keyboard focus ring: same halo geometry as
+          // the mouse-selection ring above, but a dashed stroke instead of a solid fill so
+          // the two are never visually confused (a node can carry both at once).
+          if (n.id === focusedNodeId) {
+            traceNodeShape(ctx, type, n.x!, n.y!, radius + 8);
+            ctx.save();
+            ctx.setLineDash([4 / globalScale, 3 / globalScale]);
+            ctx.lineWidth = 2 / globalScale;
+            ctx.strokeStyle = palette.interactive;
+            ctx.stroke();
+            ctx.restore();
+          }
+
           // IA-4 — the "+N more" affordance: further unexpanded neighbors exist beyond what
           // this ego-network drew. Visual only; the click target that acts on it lives in
           // the context card, not this badge (IA-5 — distinct gestures, distinct targets).
@@ -299,6 +376,6 @@ export default function GraphCanvas({
           onClose={() => setContextTarget(null)}
         />
       )}
-    </>
+    </div>
   );
 }
