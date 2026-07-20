@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Filter, Search, Share2 } from 'lucide-react';
+import { ChevronRight, Filter, Search, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ForceGraphMethods } from 'react-force-graph-2d';
 import type { GraphData, GraphNode, NodeType } from '../types/graph';
 import { getGraph } from '../api/graph';
 import { useGraph, useNodeDetail } from '../hooks/useGraph';
+import { useInvestigationTrail } from '../hooks/useInvestigationTrail';
 import { useRecentInvestigations } from '../hooks/useRecentInvestigations';
 import GraphCanvas from '../components/graph/GraphCanvas';
 import GraphControls from '../components/graph/GraphControls';
@@ -29,6 +30,7 @@ export default function GraphPage() {
   // replaces `data` outright via a fresh `useGraph` fetch below).
   const [expansions, setExpansions] = useState<Record<string, GraphData>>({});
   const { recent, record } = useRecentInvestigations();
+  const { trail, pushEntity } = useInvestigationTrail();
   // IA-1 — never request the full graph by default. Only fetch once a focus exists or the
   // user has explicitly asked to browse everything.
   const shouldLoad = Boolean(focus) || browseAll;
@@ -134,9 +136,15 @@ export default function GraphPage() {
   const { data: workOrderDetail } = useNodeDetail(focusIsWorkOrder ? focusNodeId ?? null : null);
 
   // IA-2 — a successful, focused investigation is worth remembering for next time.
+  // IA-6 — and it's the next step in this session's investigation trail, regardless of
+  // whether the user gets there again later (persists across lens switches/navigation,
+  // never reset just because the board re-fetched for the same focus).
   useEffect(() => {
-    if (focus && data && data.node_count > 0) record(focus);
-  }, [focus, data, record]);
+    if (focus && data && data.node_count > 0) {
+      record(focus);
+      pushEntity(focus);
+    }
+  }, [focus, data, record, pushEntity]);
 
   const handleRecentClick = (name: string) => handleSearchFocus(name);
 
@@ -154,6 +162,32 @@ export default function GraphPage() {
         <p className="text-sm text-text-muted mt-1">
           Every entity extracted from your documents, connected by how they relate — trace a failure back to the work order and technician behind it.
         </p>
+        {/* IA-6 — the investigation trail: every entity that's been the Anvil Point this
+            session, in order. Persists across lens switches and navigating away and back
+            (sessionStorage in useInvestigationTrail), so it only shows once there's a real
+            trail to walk back through, not on the very first focus. */}
+        {trail.length > 1 && (
+          <div className="flex items-center gap-1 mt-2 overflow-x-auto">
+            {trail.map((name, i) => {
+              const isCurrent = i === trail.length - 1;
+              return (
+                <div key={`${name}-${i}`} className="flex items-center gap-1 shrink-0">
+                  {i > 0 && <ChevronRight size={12} className="text-text-muted shrink-0" aria-hidden="true" />}
+                  {isCurrent ? (
+                    <span className="text-xs font-medium text-text-primary whitespace-nowrap">{name}</span>
+                  ) : (
+                    <button
+                      onClick={() => handleSearchFocus(name)}
+                      className="text-xs text-text-muted hover:text-accent-teal whitespace-nowrap min-h-[24px]"
+                    >
+                      {name}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-3 mt-3">
           <GraphSearch onSearch={handleSearchFocus} activeFocus={focus} />
           {data && !focusIsWorkOrder && <GraphFilters hiddenTypes={hiddenTypes} onToggle={toggleType} />}
