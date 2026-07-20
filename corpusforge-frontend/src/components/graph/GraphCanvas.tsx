@@ -5,7 +5,7 @@ import type { ForceGraphMethods, NodeObject } from 'react-force-graph-2d';
 import type { GraphData, GraphLink, GraphNode } from '../../types/graph';
 import { NODE_COLORS, nodeTypeOf } from '../../utils/constants';
 import { traceNodeShape } from './nodeShapes';
-import { computeLensLayout, lensForType, type Lens } from './graphLens';
+import { computeBrowseAllLayout, computeLensLayout, lensForType, type Lens } from './graphLens';
 import NodeContextCard from './NodeContextCard';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -101,8 +101,16 @@ export default function GraphCanvas({
   // on every render, and any x/y/fx/fy written onto those throwaway copies is lost immediately.
   // Only recreated when the underlying data or lens itself changes.
   const graphNodes = useMemo(() => {
-    if (!anchorId) return data.nodes.map((n) => ({ ...n }));
-    const targets = computeLensLayout(lens, anchorId, data.nodes, data.links);
+    // IA-3 — "browse all" (no focus/Anvil Point) still gets a deliberate layout, never free
+    // physics: computeBrowseAllLayout groups nodes into connected components and grids them.
+    // Bug fix: this branch previously returned nodes with no x/y/fx/fy/__target at all, which
+    // (a) violated GB-2/GB-4's own "never force-placed" rule by leaving the d3 force
+    // simulation to scatter disconnected components arbitrarily, and (b) crashed the settle
+    // tween effect below every time it ran (`n.__target.x` on an undefined `__target`),
+    // silently killing the animation loop after one broken frame.
+    const targets = anchorId
+      ? computeLensLayout(lens, anchorId, data.nodes, data.links)
+      : computeBrowseAllLayout(data.nodes, data.links);
     return data.nodes.map((n) => {
       const target = targets.get(n.id) ?? { x: 0, y: 0 };
       const start = restingPositions.current.get(n.id) ?? { x: 0, y: 0 };
@@ -163,9 +171,19 @@ export default function GraphCanvas({
   // mathematically centered; COMP-11 — replaces `zoomToFit` as the composition strategy.
   // Lens layouts are centered on the anchor at graph-space (0,0); `centerAt` always puts a
   // point at screen-center, so the camera target is offset by the 50%→40% delta instead.
+  // IA-3 — "browse all" has no single Anvil Point to offset from and no fixed extent (the
+  // component grid grows with corpus size), so it uses the library's own zoomToFit against
+  // the grid computeBrowseAllLayout already laid out deliberately, rather than a fixed
+  // per-lens zoom tuned for a single ego-network.
   useEffect(() => {
     const fg = graphRef.current;
     if (!fg || !width) return;
+    if (!anchorId) {
+      // Wait out the settle tween (below) first — zoomToFit reads current node positions
+      // once, so firing it before nodes reach their grid targets fits the wrong bounds.
+      const timer = setTimeout(() => fg.zoomToFit(STRUCTURAL_SETTLE_MS, 60), STRUCTURAL_SETTLE_MS + 20);
+      return () => clearTimeout(timer);
+    }
     const zoom = LENS_ZOOM[lens];
     const offsetX = (width * 0.1) / zoom;
     const timer = setTimeout(() => {

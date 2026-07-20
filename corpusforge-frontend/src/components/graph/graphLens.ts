@@ -72,6 +72,107 @@ function radialLayout(focusId: string, nodes: GraphNode[]): Map<string, LensPosi
   return positions;
 }
 
+const COMPONENT_GAP = 240;
+const MAX_ROW_WIDTH = COMPONENT_GAP * 4;
+// Isolated nodes (no co-occurrence edges — e.g. `parameter` entities, see COOCCURRENCE_RULES)
+// carry none of a real cluster's visual weight and don't need cluster-sized breathing room;
+// packing them densely keeps a corpus with many singletons from ballooning the bounding box
+// zoomToFit has to fit everything into, which would zoom real clusters down to illegibility.
+const SINGLETON_SPACING = 40;
+const SINGLETON_ROW_WIDTH = MAX_ROW_WIDTH * 0.6;
+
+function groupIntoComponents(nodes: GraphNode[], links: GraphLink[]) {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const neighborsOf = new Map<string, Set<string>>();
+  const addEdge = (a: string, b: string) => {
+    if (!neighborsOf.has(a)) neighborsOf.set(a, new Set());
+    neighborsOf.get(a)!.add(b);
+  };
+  links.forEach((l) => {
+    addEdge(l.source, l.target);
+    addEdge(l.target, l.source);
+  });
+
+  const visited = new Set<string>();
+  const components: GraphNode[][] = [];
+  nodes.forEach((start) => {
+    if (visited.has(start.id)) return;
+    const component: GraphNode[] = [];
+    const queue = [start.id];
+    visited.add(start.id);
+    while (queue.length) {
+      const id = queue.shift()!;
+      const node = byId.get(id);
+      if (node) component.push(node);
+      for (const next of neighborsOf.get(id) ?? []) {
+        if (!visited.has(next)) {
+          visited.add(next);
+          queue.push(next);
+        }
+      }
+    }
+    components.push(component);
+  });
+  return { components, neighborsOf };
+}
+
+// GB-2/GB-4 — "no node on this canvas is ever undirected-force-placed" applies here too:
+// IA-3's full-graph browse has no single Anvil Point to anchor a lens on, but every node
+// still gets a deliberate, computed position, never left to the physics engine. Each
+// connected component (size > 1) gets its own small radial layout (local anchor = its
+// highest-degree member) and is packed into a grid; isolated nodes are packed separately,
+// densely, below the real clusters (see SINGLETON_SPACING).
+export function computeBrowseAllLayout(nodes: GraphNode[], links: GraphLink[]): Map<string, LensPosition> {
+  const { components, neighborsOf } = groupIntoComponents(nodes, links);
+  const clusters = components.filter((c) => c.length > 1).sort((a, b) => b.length - a.length);
+  const singletons = components.filter((c) => c.length === 1).map((c) => c[0]);
+
+  const positions = new Map<string, LensPosition>();
+  let cursorX = 0;
+  let cursorY = 0;
+  let rowHeight = 0;
+  clusters.forEach((component) => {
+    const localAnchor = component.reduce((best, n) => {
+      const degree = neighborsOf.get(n.id)?.size ?? 0;
+      const bestDegree = neighborsOf.get(best.id)?.size ?? 0;
+      return degree > bestDegree ? n : best;
+    }, component[0]);
+    const local = radialLayout(localAnchor.id, component);
+    const span = RING_RADIUS * 2;
+
+    if (cursorX + span > MAX_ROW_WIDTH) {
+      cursorX = 0;
+      cursorY += rowHeight + COMPONENT_GAP;
+      rowHeight = 0;
+    }
+    const offsetX = cursorX + span / 2;
+    const offsetY = cursorY;
+    component.forEach((n) => {
+      const p = local.get(n.id)!;
+      positions.set(n.id, { x: p.x + offsetX, y: p.y + offsetY });
+    });
+    cursorX += span + COMPONENT_GAP;
+    rowHeight = Math.max(rowHeight, span);
+  });
+
+  if (singletons.length > 0) {
+    let singletonY = clusters.length > 0 ? cursorY + rowHeight + COMPONENT_GAP : 0;
+    let singletonX = 0;
+    let singletonRowHeight = 0;
+    singletons.forEach((n) => {
+      if (singletonX + SINGLETON_SPACING > SINGLETON_ROW_WIDTH) {
+        singletonX = 0;
+        singletonY += singletonRowHeight + SINGLETON_SPACING;
+        singletonRowHeight = 0;
+      }
+      positions.set(n.id, { x: singletonX, y: singletonY });
+      singletonX += SINGLETON_SPACING;
+      singletonRowHeight = SINGLETON_SPACING;
+    });
+  }
+  return positions;
+}
+
 // Chronological strip, most recent (or only known) first, focus anchored at the left edge.
 // Honest limitation: co-occurrence edges today never connect a `date` entity to anything
 // (NODE-4 — dates live in the Coordinate Rail, PANEL-8, not yet wired into edges), so there
