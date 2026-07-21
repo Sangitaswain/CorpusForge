@@ -113,13 +113,14 @@ These are load-bearing decisions. Do not change them without reading the relevan
 ## Current State
 
 - Git branch: `main`
-- Last commit: `4ecd75e` — feat: add dismissible Firefox-only pan-quirk notice on the Graph page
-- Implementation Plan Steps 1–7 are complete: Foundation, Ingestion, Copilot, Entity Extraction, Knowledge Graph, Pattern Engine, Compliance Gap Detection
+- Last commit: `1d42987` — fix: prevent dedup from suppressing distinct alerts or resurrecting dismissed ones
+- Implementation Plan Steps 1–8 are complete: Foundation, Ingestion, Copilot, Entity Extraction, Knowledge Graph, Pattern Engine, Compliance Gap Detection, Proactive Alerts
 - On top of Step 5, the Knowledge Graph has been substantially deepened per `docs/Knowledge_Graph_Design_Bible.md` (AI node summaries, entity-aware Ask Forge, Coordinate Rail timeline, compliance VIOLATES edges, breadcrumb trail, keyboard nav, contrast fixes)
-- **Step 8 (Proactive Alerts) is next** — not started: `alert_service.py`, `routers/alerts.py`, AlertsPage, NavBar badge
-- Step 9 (demo corpus + benchmarking) and Substep 1.6 (deployment — blocked, no card on file for Fly.io) are also still open
+- Step 8 (Proactive Alerts) shipped: 4 checks (`pattern_match`, `procedure_outdated`, `knowledge_cliff`, `no_coverage`) in `alert_service.py`, zero Gemini calls, automatic post-ingestion hook plus a manual "Check Now" trigger, full `routers/alerts.py`, `AlertsPage`, `AlertCard`, Sidebar unread badge
+- **Step 9 (demo corpus + benchmarking) is next** — only 5 of ~25 planted documents are ingested; patterns/compliance gaps verified working against the current subset
+- Substep 1.6 (deployment) still blocked, no card on file for Fly.io — a Supabase Postgres/pgvector migration was scoped as a way around this but deliberately deferred, not urgent (submission is a video, not a live URL)
 
-When resuming: check `docs/Implementation_Plan.md` for the exact next unchecked substep before starting Step 8.
+When resuming: check `docs/Implementation_Plan.md` for the exact next unchecked substep before starting Step 9.
 
 ---
 
