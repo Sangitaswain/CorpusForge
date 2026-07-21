@@ -66,13 +66,25 @@ def _incident_summary_text(doc: Document, db: Session) -> tuple[str, list[str]]:
     return f"Equipment: {', '.join(equipment_tags) or 'unknown'}. {body_text}", equipment_tags
 
 
-def _alert_exists(alert_type: str, source_doc_ids: list[str], db: Session) -> bool:
-    """Dedup guard: skip creating an alert if a non-dismissed one with the same type and
-    same source documents already exists, so re-running 'Check Now' never spams
-    duplicates."""
+def _alert_exists(alert_type: str, source_doc_ids: list[str], title: str, db: Session) -> bool:
+    """Dedup guard: skip creating an alert if one with the same type, same source documents,
+    AND same title already exists, so re-running 'Check Now' never spams duplicates.
+
+    `title` is required in the key because `alert_type` + `source_doc_ids` alone is not
+    unique per finding: _check_no_coverage can raise multiple alerts for the same
+    regulation doc (one per uncovered regulation_ref), and _check_pattern_match can raise
+    multiple alerts for the same incident doc (one per matched pattern). In both cases the
+    distinct findings share alert_type and source_doc_ids but always have a distinct title
+    (per-ref, per-pattern respectively), so title is what tells them apart.
+
+    This check intentionally includes dismissed alerts (no `is_dismissed` filter): dismiss
+    is meant to be permanent (there is no History view to bring a dismissed alert back), so
+    a dismissed alert must still block recreation of the identical finding — otherwise
+    clicking "Check Now" again, or re-ingesting the same document, would resurrect it under
+    a new id."""
     key = sorted(source_doc_ids)
-    for alert in db.query(Alert).filter_by(alert_type=alert_type, is_dismissed=0).all():
-        if sorted(json.loads(alert.source_doc_ids or "[]")) == key:
+    for alert in db.query(Alert).filter_by(alert_type=alert_type).all():
+        if sorted(json.loads(alert.source_doc_ids or "[]")) == key and alert.title == title:
             return True
     return False
 
@@ -87,9 +99,10 @@ def create_alert(
     recommendation: str,
     db: Session,
 ) -> Alert | None:
-    """Creates and commits a new Alert row, unless a matching non-dismissed alert already
-    exists (see _alert_exists). Returns the created row, or None if it was a duplicate."""
-    if _alert_exists(alert_type, source_doc_ids, db):
+    """Creates and commits a new Alert row, unless a matching alert (same type, source docs,
+    and title — dismissed or not, see _alert_exists) already exists. Returns the created
+    row, or None if it was a duplicate."""
+    if _alert_exists(alert_type, source_doc_ids, title, db):
         return None
     alert = Alert(
         id=str(uuid.uuid4()),

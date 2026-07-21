@@ -43,7 +43,7 @@ def _chunk(db, document_id, text, chunk_index=0):
 
 def test_create_alert_dedups_same_type_and_source(test_db):
     first = create_alert("no_coverage", "t", "d", "High", ["OISD-1"], ["doc-1"], "r", test_db)
-    second = create_alert("no_coverage", "t2", "d2", "High", ["OISD-1"], ["doc-1"], "r2", test_db)
+    second = create_alert("no_coverage", "t", "d2", "High", ["OISD-1"], ["doc-1"], "r2", test_db)
     assert first is not None
     assert second is None
     assert test_db.query(Alert).count() == 1
@@ -55,6 +55,30 @@ def test_create_alert_allows_different_source(test_db):
     assert first is not None
     assert second is not None
     assert test_db.query(Alert).count() == 2
+
+
+def test_create_alert_allows_different_title_same_source(test_db):
+    """Finding 1: _check_no_coverage and _check_pattern_match can each legitimately raise
+    multiple distinct alerts for the same alert_type + source_doc_ids (e.g. two uncovered
+    regulation_refs on the same regulation doc). Distinct titles must not dedup away."""
+    first = create_alert("no_coverage", "t1", "d", "High", ["OISD-1"], ["doc-1"], "r", test_db)
+    second = create_alert("no_coverage", "t2", "d", "High", ["OISD-1"], ["doc-1"], "r", test_db)
+    assert first is not None
+    assert second is not None
+    assert test_db.query(Alert).count() == 2
+
+
+def test_create_alert_does_not_resurrect_dismissed_alert(test_db):
+    """Finding 2: dismiss is meant to be permanent, so a dismissed alert must still block
+    recreation of the identical finding (same type, source docs, and title)."""
+    first = create_alert("no_coverage", "t", "d", "High", ["OISD-1"], ["doc-1"], "r", test_db)
+    assert first is not None
+    first.is_dismissed = 1
+    test_db.commit()
+
+    second = create_alert("no_coverage", "t", "d", "High", ["OISD-1"], ["doc-1"], "r", test_db)
+    assert second is None
+    assert test_db.query(Alert).count() == 1
 
 
 def test_check_pattern_match_flags_similar_incident(test_db):
