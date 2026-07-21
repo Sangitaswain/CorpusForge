@@ -219,4 +219,48 @@ def test_run_all_checks_is_idempotent(test_db):
     second = run_all_checks(test_db)
     assert first == 1
     assert second == 0
+
+
+def test_check_no_coverage_ignores_procedure_that_is_not_done(test_db):
+    """A procedure document still processing (or failed) must not count as real coverage —
+    its entity extraction may not have completed, so treating it as covering the regulation
+    would be trusting data that doesn't exist yet."""
+    reg = _doc(test_db, filename="OISD-STD-105.txt", doc_type="regulation")
+    _entity(test_db, reg.id, "regulation_ref", "OISD-STD-105")
+    sop = _doc(test_db, filename="SOP-12.txt", doc_type="sop", status="processing")
+    _entity(test_db, sop.id, "regulation_ref", "OISD-STD-105")
+
+    created = _check_no_coverage(test_db, regulation_doc_ids=[reg.id])
+    assert created == 1
+
+
+def test_check_knowledge_cliff_ignores_other_document_that_is_not_done(test_db):
+    """A second document mentioning the same equipment tag must not suppress a
+    knowledge_cliff alert if that second document isn't 'done' — an incomplete document
+    isn't a real second source yet."""
+    doc1 = _doc(test_db, filename="SOP-A.txt", doc_type="sop")
+    doc2 = _doc(test_db, filename="SOP-B.txt", doc_type="sop", status="processing")
+    _entity(test_db, doc1.id, "equipment_tag", "V-996")
+    _entity(test_db, doc1.id, "date", "January 2015")
+    _entity(test_db, doc2.id, "equipment_tag", "V-996")
+
+    created = _check_knowledge_cliff(test_db, candidate_doc_ids=[doc1.id])
+    assert created == 1
+
+
+def test_check_after_ingestion_checks_procedure_side_too(test_db):
+    """Ingesting a new regulation already checks it against every existing procedure. The
+    reverse must also fire: ingesting a new procedure that's already outdated against an
+    existing regulation must trigger procedure_outdated too, not just wait for the next
+    manual 'Check Now'."""
+    reg = _doc(test_db, filename="OISD-STD-105.txt", doc_type="regulation")
+    _entity(test_db, reg.id, "regulation_ref", "OISD-STD-105")
+    _entity(test_db, reg.id, "date", "October 2024")
+
+    sop = _doc(test_db, filename="SOP-12.txt", doc_type="sop")
+    _entity(test_db, sop.id, "regulation_ref", "OISD-STD-105")
+    _entity(test_db, sop.id, "date", "15 January 2023")
+
+    check_after_ingestion(sop.id, test_db)
+    assert test_db.query(Alert).filter_by(alert_type="procedure_outdated").count() == 1
     assert test_db.query(Alert).count() == 1

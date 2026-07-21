@@ -230,10 +230,12 @@ def _check_knowledge_cliff(db: Session, candidate_doc_ids: list[str] | None = No
             tag
             for tag in tags
             if db.query(Entity)
+            .join(Document, Document.id == Entity.document_id)
             .filter(
                 Entity.entity_type == "equipment_tag",
                 Entity.normalized_value == tag,
                 Entity.document_id != doc.id,
+                Document.status == "done",
             )
             .first()
             is None
@@ -277,6 +279,7 @@ def _check_no_coverage(db: Session, regulation_doc_ids: list[str] | None = None)
                     Entity.entity_type == "regulation_ref",
                     Entity.normalized_value == ref,
                     Document.doc_type.in_(PROCEDURE_DOC_TYPES),
+                    Document.status == "done",
                 )
                 .first()
             )
@@ -301,7 +304,14 @@ def _check_no_coverage(db: Session, regulation_doc_ids: list[str] | None = None)
 
 
 def check_after_ingestion(document_id: str, db: Session) -> None:
-    """Called at the end of every successful document ingest (services/ingestion/pipeline.py)."""
+    """Called at the end of every successful document ingest (services/ingestion/pipeline.py).
+
+    A newly-ingested regulation checks itself against every existing procedure — but the
+    reverse direction matters too: a newly-ingested procedure can just as easily be outdated
+    against an existing regulation, and that side was missing until now. _check_procedure_
+    outdated does a full scan regardless of which side triggered it, so either direction
+    finds the same pair.
+    """
     doc = db.query(Document).filter_by(id=document_id).first()
     if doc is None:
         return
@@ -310,7 +320,9 @@ def check_after_ingestion(document_id: str, db: Session) -> None:
     elif doc.doc_type == "regulation":
         _check_procedure_outdated(db, regulation_doc_ids=[document_id])
         _check_no_coverage(db, regulation_doc_ids=[document_id])
-    elif doc.doc_type in ("sop", "manual"):
+    elif doc.doc_type in PROCEDURE_DOC_TYPES:
+        _check_procedure_outdated(db)
+    if doc.doc_type in ("sop", "manual"):
         _check_knowledge_cliff(db, candidate_doc_ids=[document_id])
 
 

@@ -22,7 +22,7 @@ export default function AlertsPage() {
             Alerts {unreadCount > 0 && <span className="text-text-muted font-normal">({unreadCount} unread)</span>}
           </h1>
           <p className="text-sm text-text-muted mt-1">
-            Proactive checks for pattern matches, outdated procedures, and coverage gaps.
+            Proactive checks for pattern matches, outdated procedures, knowledge cliffs, and coverage gaps.
           </p>
         </div>
         <div className="flex items-center gap-2">
