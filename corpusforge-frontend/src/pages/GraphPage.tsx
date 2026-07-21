@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, Filter, Search, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ForceGraphMethods } from 'react-force-graph-2d';
-import type { GraphData, GraphNode, NodeType } from '../types/graph';
+import type { GraphData, GraphLink, GraphNode, GraphNodePayload, NodeType } from '../types/graph';
 import { getGraph } from '../api/graph';
 import { useGraph, useNodeDetail } from '../hooks/useGraph';
 import { useInvestigationTrail } from '../hooks/useInvestigationTrail';
@@ -42,7 +42,7 @@ export default function GraphPage() {
     setExpansions({});
   }, [focus, browseAll]);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
-  const graphRef = useRef<ForceGraphMethods | undefined>(undefined);
+  const graphRef = useRef<ForceGraphMethods<GraphNodePayload, GraphLink> | undefined>(undefined);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
   useEffect(() => {

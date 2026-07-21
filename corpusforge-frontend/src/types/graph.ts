@@ -31,6 +31,19 @@ export interface GraphLink {
   document_id: string | null;
 }
 
+// The bare payload type for react-force-graph-2d's ForceGraphMethods<NodeType, LinkType>
+// generic (the library wraps it internally with simulation fields — x/y/vx/vy/fx/fy — via
+// its own NodeObject<NodeType>). __target is the settle-tween target position GraphCanvas's
+// graphNodes useMemo writes onto every node unconditionally (both the anchored-lens and
+// browse-all branches set it, never omit it), so it's required here, not optional. Shared so
+// GraphCanvas, GraphPage, and GraphControls all type the same graphRef consistently instead
+// of each defaulting ForceGraphMethods's generic to `{}`, which is what tsc -b's stricter
+// project-reference build (unlike a plain `tsc --noEmit`) rejects as a mismatch against the
+// component's actual inferred node/link types.
+export interface GraphNodePayload extends GraphNode {
+  __target: { x: number; y: number };
+}
+
 export interface GraphData {
   nodes: GraphNode[];
   links: GraphLink[];

@@ -1,9 +1,10 @@
 import type { MutableRefObject } from 'react';
 import { Home, ZoomIn, ZoomOut } from 'lucide-react';
 import type { ForceGraphMethods } from 'react-force-graph-2d';
+import type { GraphLink, GraphNodePayload } from '../../types/graph';
 
 interface GraphControlsProps {
-  graphRef: MutableRefObject<ForceGraphMethods | undefined>;
+  graphRef: MutableRefObject<ForceGraphMethods<GraphNodePayload, GraphLink> | undefined>;
 }
 
 const ZOOM_STEP = 1.5;

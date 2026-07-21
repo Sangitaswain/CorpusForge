@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, MutableRefObject } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods, NodeObject } from 'react-force-graph-2d';
-import type { GraphData, GraphLink, GraphNode } from '../../types/graph';
+import type { GraphData, GraphLink, GraphNode, GraphNodePayload } from '../../types/graph';
 import { NODE_COLORS, nodeTypeOf } from '../../utils/constants';
 import { traceNodeShape } from './nodeShapes';
 import { computeBrowseAllLayout, computeLensLayout, lensForType, type Lens } from './graphLens';
@@ -17,7 +17,7 @@ interface GraphCanvasProps {
   width: number;
   height: number;
   selectedNodeId?: string | null;
-  graphRef: MutableRefObject<ForceGraphMethods | undefined>;
+  graphRef: MutableRefObject<ForceGraphMethods<GraphNodePayload, GraphLink> | undefined>;
 }
 
 type CanvasNode = NodeObject & GraphNode;
@@ -297,7 +297,17 @@ export default function GraphCanvas({
         // edge with nothing to say is simply never created.
         linkCanvasObjectMode={() => 'after'}
         linkCanvasObject={(link, ctx, globalScale) => {
-          const l = link as GraphLink & { source: CanvasNode | string; target: CanvasNode | string };
+          // Omit GraphLink's own source/target (always `string`) before intersecting — force
+          // graph mutates a link's source/target from a plain id into the resolved node
+          // object once the simulation has it, so at render time it's actually one or the
+          // other. Intersecting CanvasNode|string directly onto GraphLink without dropping
+          // its string-only source/target first collapses the union straight back to
+          // `string` (string & CanvasNode is `never`), which is exactly why the reachability
+          // guard below type-checked as `never` under a stricter build.
+          const l = link as Omit<GraphLink, 'source' | 'target'> & {
+            source: CanvasNode | string;
+            target: CanvasNode | string;
+          };
           const src = l.source;
           const tgt = l.target;
           if (typeof src !== 'object' || typeof tgt !== 'object' || src.x == null || tgt.x == null) return;
