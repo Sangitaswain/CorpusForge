@@ -148,6 +148,16 @@ def process_document(document_id: str, file_bytes: bytes) -> None:
             doc.status = "done"
             doc.entity_count = entity_count
             db.commit()
+
+            # BP-08: proactive alert checks. Wrapped separately so a bug in alert checking
+            # can never cause a successfully-ingested document to be marked 'failed'.
+            try:
+                from services.alert_service import check_after_ingestion
+
+                check_after_ingestion(document_id, db)
+            except Exception:
+                logger.exception("Alert checks failed after ingesting document %s", document_id)
+
             logger.info(
                 "Ingestion done for document %s: %d pages, %d chunks (kind %s)",
                 document_id, len(pages), len(all_chunks), file_kind,
