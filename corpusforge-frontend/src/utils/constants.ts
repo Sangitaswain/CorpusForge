@@ -1,6 +1,17 @@
 import type { NodeType } from '../types/graph';
 import type { DocumentType } from '../types/document';
+import type { Severity } from '../types/intelligence';
 import { NODE_BADGE_TEXT_SAFE_PALETTE, NODE_PALETTE } from '../constants/nodePalette';
+
+// Shared by PatternCard and AlertCard — both render "a flagged finding" with the same
+// left-border severity accent.
+export const SEVERITY_ACCENT_BORDER: Record<Severity, string> = {
+  'Audit-Critical': 'border-l-red-400',
+  Critical: 'border-l-red-400',
+  High: 'border-l-orange-400',
+  Medium: 'border-l-amber-400',
+  Low: 'border-l-green-400',
+};
 
 // Knowledge_Graph_Design_Bible.md NODE-6 — sourced from NODE_PALETTE, the single
 // source of truth also consumed by tailwind.config.ts. Do not hardcode these values here.

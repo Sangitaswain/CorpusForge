@@ -1,22 +1,15 @@
 import { useState } from 'react';
-import type { Pattern, Severity } from '../../types/intelligence';
+import type { Pattern } from '../../types/intelligence';
 import SeverityBadge from '../shared/SeverityBadge';
 import CitationChip from '../shared/CitationChip';
 import PatternDetail from './PatternDetail';
-
-const ACCENT_BORDER: Record<Severity, string> = {
-  'Audit-Critical': 'border-l-red-400',
-  Critical: 'border-l-red-400',
-  High: 'border-l-orange-400',
-  Medium: 'border-l-amber-400',
-  Low: 'border-l-green-400',
-};
+import { SEVERITY_ACCENT_BORDER } from '../../utils/constants';
 
 export default function PatternCard({ pattern }: { pattern: Pattern }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={`bg-bg-surface border border-border-default border-l-4 ${ACCENT_BORDER[pattern.severity]} rounded-lg p-5`}>
+    <div className={`bg-bg-surface border border-border-default border-l-4 ${SEVERITY_ACCENT_BORDER[pattern.severity]} rounded-lg p-5`}>
       <div className="flex items-start gap-3">
         <SeverityBadge severity={pattern.severity} />
         <div className="flex-1 min-w-0">
