@@ -1,4 +1,10 @@
+import asyncio
 import io
+import uuid
+from unittest.mock import patch
+
+from models.chunk import Chunk
+from models.document import Document
 
 
 def test_entity_extractor_parses_valid_gemini_response():
@@ -69,3 +75,43 @@ def test_entity_extractor_dedupes_repeated_entities():
     )
     result = parse_entity_json(raw)
     assert len(result) == 1
+
+
+def test_extract_entities_returns_zero_failures_on_success(test_db, mock_gemini_entity):
+    from services.ingestion.entity_extractor import extract_entities_for_document
+
+    doc = Document(id=str(uuid.uuid4()), filename="d.txt", original_name="d.txt", status="processing")
+    test_db.add(doc)
+    test_db.commit()
+    chunk = Chunk(id=str(uuid.uuid4()), document_id=doc.id, chunk_index=0, page_number=1, text="P-101 pump.")
+    test_db.add(chunk)
+    test_db.commit()
+
+    total, failed = asyncio.run(
+        extract_entities_for_document(doc.id, [{"chunk_id": chunk.id, "text": chunk.text}], test_db)
+    )
+    assert total == 2  # mock_gemini_entity returns one equipment_tag + one date
+    assert failed == 0
+
+
+def test_extract_entities_counts_failed_chunks_without_crashing(test_db):
+    """A Gemini call that raises for every chunk (e.g. quota exhaustion) must be reported
+    back to the caller, not silently swallowed into a fake entity_count of 0 — see
+    pipeline.py's use of the failed_chunks count to distinguish this from a document that
+    genuinely has zero extractable entities."""
+    from services.ingestion.entity_extractor import extract_entities_for_document
+
+    doc = Document(id=str(uuid.uuid4()), filename="d.txt", original_name="d.txt", status="processing")
+    test_db.add(doc)
+    test_db.commit()
+    chunk = Chunk(id=str(uuid.uuid4()), document_id=doc.id, chunk_index=0, page_number=1, text="P-101 pump.")
+    test_db.add(chunk)
+    test_db.commit()
+
+    with patch("services.ingestion.entity_extractor.gemini_model") as mock_model:
+        mock_model.generate_content.side_effect = Exception("429 quota exceeded")
+        total, failed = asyncio.run(
+            extract_entities_for_document(doc.id, [{"chunk_id": chunk.id, "text": chunk.text}], test_db)
+        )
+    assert total == 0
+    assert failed == 1

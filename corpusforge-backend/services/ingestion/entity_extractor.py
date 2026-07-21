@@ -71,13 +71,19 @@ def parse_entity_json(raw_response: str) -> list[dict]:
         return []
 
 
-async def extract_entities_for_document(document_id: str, chunks: list[dict], db) -> int:
+async def extract_entities_for_document(document_id: str, chunks: list[dict], db) -> tuple[int, int]:
     """Extract entities chunk by chunk and insert rows via the ORM.
 
-    Returns the number of entities stored. Individual chunk failures are
-    logged and skipped — one bad Gemini response must not fail ingestion.
+    Returns (entity_count, failed_chunk_count). A chunk whose Gemini call raises is logged
+    and skipped — one bad chunk must not fail the whole document — but the failure is still
+    counted so the caller can tell "this document genuinely has zero entities" apart from
+    "extraction couldn't complete for any chunk" (e.g. a quota outage), the same distinction
+    already made in pattern_engine.py/compliance_engine.py. Without this, a document that
+    fails every chunk still lands as status='done' with entity_count=0 — indistinguishable
+    from a document that legitimately mentions nothing extractable.
     """
     total = 0
+    failed_chunks = 0
     next_cast_number = (db.query(func.max(Entity.cast_number)).scalar() or 0) + 1
     for index, chunk in enumerate(chunks):
         if index > 0:
@@ -90,6 +96,7 @@ async def extract_entities_for_document(document_id: str, chunks: list[dict], db
             raw_text = response.text
         except Exception:
             logger.exception("Gemini entity extraction failed for a chunk of document %s", document_id)
+            failed_chunks += 1
             continue
 
         for item in parse_entity_json(raw_text):
@@ -110,4 +117,4 @@ async def extract_entities_for_document(document_id: str, chunks: list[dict], db
         db.commit()
 
     logger.info("Entity extraction stored %d entities for document %s", total, document_id)
-    return total
+    return total, failed_chunks

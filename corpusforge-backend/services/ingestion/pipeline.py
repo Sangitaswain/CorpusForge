@@ -135,7 +135,25 @@ def process_document(document_id: str, file_bytes: bytes) -> None:
             # BP-03 step 6: Gemini entity extraction (rate-limited inside)
             from services.ingestion.entity_extractor import extract_entities_for_document
 
-            entity_count = asyncio.run(extract_entities_for_document(document_id, all_chunks, db))
+            entity_count, failed_chunks = asyncio.run(
+                extract_entities_for_document(document_id, all_chunks, db)
+            )
+
+            if failed_chunks and failed_chunks == len(all_chunks):
+                # Every chunk's Gemini call failed (e.g. a quota outage) — this is a broken
+                # extraction, not a document that genuinely has zero entities, so it must not
+                # be marked 'done'. Text/chunks/embeddings already stored remain usable (the
+                # document is still searchable via Copilot); only entity-driven features
+                # (Knowledge Graph, patterns, alerts) will miss it until a retry.
+                doc.status = "failed"
+                doc.error_msg = "Entity extraction failed. The document text was saved — please retry shortly."
+                doc.entity_count = 0
+                db.commit()
+                logger.error(
+                    "Ingestion for document %s: entity extraction failed on all %d chunks",
+                    document_id, len(all_chunks),
+                )
+                return
 
             # BP-03 step 7: update the in-memory graph and build co-occurrence edges
             from models.entity import Entity as EntityModel
