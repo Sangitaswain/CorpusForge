@@ -16,7 +16,11 @@ CorpusForge is an AI-powered knowledge platform for asset-intensive industries. 
 
 - **Compliance Gap Detection**: Maps regulatory clauses against plant procedures and identifies gaps, outdated procedures, and missing coverage.
 
-- **Proactive Alerts**: Surfaces warnings when new documents introduce compliance risks or match known failure patterns, without waiting to be asked.
+- **Proactive Alerts**: Surfaces warnings when new documents introduce compliance risks or match known failure patterns, without waiting to be asked. *(in development)*
+
+## Status
+
+Document ingestion, the Copilot, the Knowledge Graph, Failure Pattern Intelligence, and Compliance Gap Detection are built and working end to end. Proactive Alerts is the current focus. A hosted demo isn't live yet — run it locally with the steps below.
 
 ## Tech Stack
 

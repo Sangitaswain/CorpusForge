@@ -113,11 +113,13 @@ These are load-bearing decisions. Do not change them without reading the relevan
 ## Current State
 
 - Git branch: `main`
-- Last commit: `be167d9` — style: remove em dashes from readme
-- All planning documents complete (Steps 1–15 of the planning phase done)
-- Implementation has not started — Step 1 (Project Foundation) is next
+- Last commit: `4ecd75e` — feat: add dismissible Firefox-only pan-quirk notice on the Graph page
+- Implementation Plan Steps 1–7 are complete: Foundation, Ingestion, Copilot, Entity Extraction, Knowledge Graph, Pattern Engine, Compliance Gap Detection
+- On top of Step 5, the Knowledge Graph has been substantially deepened per `docs/Knowledge_Graph_Design_Bible.md` (AI node summaries, entity-aware Ask Forge, Coordinate Rail timeline, compliance VIOLATES edges, breadcrumb trail, keyboard nav, contrast fixes)
+- **Step 8 (Proactive Alerts) is next** — not started: `alert_service.py`, `routers/alerts.py`, AlertsPage, NavBar badge
+- Step 9 (demo corpus + benchmarking) and Substep 1.6 (deployment — blocked, no card on file for Fly.io) are also still open
 
-When starting implementation: create branch `feature/step-1-foundation`, then follow Substep 1.1 in `docs/Implementation_Plan.md`.
+When resuming: check `docs/Implementation_Plan.md` for the exact next unchecked substep before starting Step 8.
 
 ---
 
