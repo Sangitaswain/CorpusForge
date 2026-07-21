@@ -16,8 +16,13 @@ def _rows_to_pages(df: pd.DataFrame) -> list[dict]:
 
 
 def extract_pages_from_excel(file_bytes: bytes) -> list[dict]:
-    df = pd.read_excel(io.BytesIO(file_bytes))
-    return _rows_to_pages(df)
+    # sheet_name=None loads every worksheet, not just the first — a workbook's later sheets
+    # were previously dropped entirely with no error to indicate it.
+    sheets = pd.read_excel(io.BytesIO(file_bytes), sheet_name=None)
+    pages = [page for df in sheets.values() for page in _rows_to_pages(df)]
+    for index, page in enumerate(pages):
+        page["page_number"] = index + 1
+    return pages
 
 
 def extract_pages_from_csv(file_bytes: bytes) -> list[dict]:

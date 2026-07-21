@@ -116,7 +116,9 @@ export function groupByDocType(documents: Document[]): DocTypeCount[] {
 }
 
 export function formatRelativeTime(value: string | number | null): string {
-  if (!value) return 'Never run';
+  // A plain falsy check treats epoch 0 (1970-01-01, a legitimate numeric timestamp) the
+  // same as null/'' — only null or an empty string actually mean "never run".
+  if (value === null || value === '') return 'Never run';
   const target = typeof value === 'number' ? value : new Date(value).getTime();
   const diffMs = Date.now() - target;
   const diffMin = Math.round(diffMs / 60_000);

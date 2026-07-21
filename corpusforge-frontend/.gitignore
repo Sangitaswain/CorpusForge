@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+.env*
+!.env.example
 *.tsbuildinfo
 vite.config.d.ts
 vite.config.js

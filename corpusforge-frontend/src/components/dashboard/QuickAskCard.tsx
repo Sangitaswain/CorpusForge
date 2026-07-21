@@ -3,14 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Search } from 'lucide-react';
 
 const EXAMPLE_QUESTIONS = ['Why did C-205 fail?', 'Show contractor maintenance risks', 'What compliance gaps exist?'];
+// Matches QuestionInput's own MAX_CHARS — Ask Forge rejects anything longer, so a
+// dashboard-originated question must respect the same limit before it ever gets there.
+const MAX_CHARS = 500;
 
 export default function QuickAskCard() {
   const [value, setValue] = useState('');
   const navigate = useNavigate();
 
   const ask = (question: string) => {
-    if (!question.trim()) return;
-    navigate('/ask-forge', { state: { question } });
+    const trimmed = question.trim().slice(0, MAX_CHARS);
+    if (!trimmed) return;
+    navigate('/ask-forge', { state: { question: trimmed } });
   };
 
   return (

@@ -16,6 +16,7 @@ class DocumentItem(BaseModel):
     entity_count: int
     uploaded_at: str | None
     error_msg: str | None
+    cast_number: int
 
 
 class DocumentStatus(BaseModel):

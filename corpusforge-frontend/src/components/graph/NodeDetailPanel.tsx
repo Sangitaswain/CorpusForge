@@ -25,9 +25,13 @@ export default function NodeDetailPanel({ entityId, onClose }: NodeDetailPanelPr
             <>
               <div className="flex items-baseline gap-2">
                 <h2 className="text-xl font-bold text-text-primary">{data.entity.name}</h2>
-                {/* Cast Number (PANEL-2) — permanent, quiet, reference-only; never regenerated
-                    on re-render since castNumber() is a pure hash of the entity id (NEVER-9). */}
-                <span className="font-mono text-2xs text-text-muted shrink-0">{castNumber(data.entity.id, 'REC')}</span>
+                {/* Cast Number (PANEL-2) — permanent, quiet, reference-only; backend-issued
+                    (Entity.cast_number), so it never changes across reloads or re-renders. */}
+                {data.entity.cast_number !== null && (
+                  <span className="font-mono text-2xs text-text-muted shrink-0">
+                    {castNumber(data.entity.cast_number, 'REC')}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2 mt-1.5">
                 <span

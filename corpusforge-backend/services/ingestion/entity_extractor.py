@@ -9,6 +9,7 @@ import logging
 import uuid
 
 import google.generativeai as genai
+from sqlalchemy import func
 
 from core.config import settings
 from models.entity import Entity
@@ -77,6 +78,7 @@ async def extract_entities_for_document(document_id: str, chunks: list[dict], db
     logged and skipped — one bad Gemini response must not fail ingestion.
     """
     total = 0
+    next_cast_number = (db.query(func.max(Entity.cast_number)).scalar() or 0) + 1
     for index, chunk in enumerate(chunks):
         if index > 0:
             await asyncio.sleep(4)  # 15 req/min Gemini free tier — never remove
@@ -100,8 +102,10 @@ async def extract_entities_for_document(document_id: str, chunks: list[dict], db
                     value=item["value"],
                     normalized_value=normalize_value(item["entity_type"], item["value"]),
                     confidence=item["confidence"],
+                    cast_number=next_cast_number,
                 )
             )
+            next_cast_number += 1
             total += 1
         db.commit()
 

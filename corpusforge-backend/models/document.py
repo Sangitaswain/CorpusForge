@@ -16,3 +16,7 @@ class Document(Base):
     entity_count = Column(Integer, default=0)
     content_hash = Column(Text)
     uploaded_at = Column(Text)
+    # Backend-issued, permanent, collision-free Cast Number source (Visual_Identity.md,
+    # signature element 8) — assigned once at upload time, never reused. Replaces the old
+    # frontend-only hash of `id`, which had a real 16-bit collision risk at scale.
+    cast_number = Column(Integer, unique=True)

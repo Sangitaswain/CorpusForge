@@ -7,6 +7,18 @@ interface UploadZoneProps {
 }
 
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.xlsx,.xls,.csv,.txt';
+const ACCEPT_EXTENSIONS = ACCEPT.split(',');
+const MAX_SIZE_BYTES = 50 * 1024 * 1024;
+
+// The backend is the real gate (SO-04/SO-05); this only saves the user a round trip for the
+// two things checkable client-side without reading file content — extension and size. Both
+// the drag-and-drop and native picker paths go through this so neither can bypass it.
+function filterValidFiles(files: File[]): File[] {
+  return files.filter((file) => {
+    const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+    return ACCEPT_EXTENSIONS.includes(ext) && file.size <= MAX_SIZE_BYTES;
+  });
+}
 
 export default function UploadZone({ onFiles }: UploadZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -15,15 +27,22 @@ export default function UploadZone({ onFiles }: UploadZoneProps) {
   const handleDrop = (e: DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    onFiles(Array.from(e.dataTransfer.files));
+    onFiles(filterValidFiles(Array.from(e.dataTransfer.files)));
   };
+
+  const activate = () => inputRef.current?.click();
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => inputRef.current?.click()}
-      onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
+      onClick={activate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activate();
+        }
+      }}
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
@@ -43,7 +62,7 @@ export default function UploadZone({ onFiles }: UploadZoneProps) {
         accept={ACCEPT}
         className="hidden"
         onChange={(e) => {
-          onFiles(Array.from(e.target.files ?? []));
+          onFiles(filterValidFiles(Array.from(e.target.files ?? [])));
           e.target.value = '';
         }}
       />

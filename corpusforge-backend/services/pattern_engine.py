@@ -44,6 +44,7 @@ class PatternState(TypedDict):
     incident_features: list[IncidentFeature]
     clusters: list[list[IncidentFeature]]
     patterns: list[dict]
+    gemini_failures: int
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
@@ -144,8 +145,15 @@ def cluster_by_similarity(state: PatternState) -> PatternState:
 
 
 async def synthesise_root_cause(state: PatternState) -> PatternState:
-    """Node 3: one Gemini call per qualifying cluster, rate-limited to 15 req/min."""
+    """Node 3: one Gemini call per qualifying cluster, rate-limited to 15 req/min.
+
+    Tracks `gemini_failures` (a raised exception or an unparseable response) separately
+    from a genuinely empty cluster list, so `run_pattern_analysis` can tell "the engine
+    ran clean and found nothing" apart from "the engine couldn't complete" — the latter
+    must never be allowed to wipe out patterns from a previous successful run.
+    """
     patterns: list[dict] = []
+    failures = 0
     for index, cluster in enumerate(state["clusters"]):
         if index > 0:
             await asyncio.sleep(4)  # Gemini free tier 15 req/min — never remove
@@ -159,8 +167,10 @@ async def synthesise_root_cause(state: PatternState) -> PatternState:
             parsed = _parse_pattern_json(response.text)
         except Exception:
             logger.exception("Gemini root cause synthesis failed for a cluster of %d incidents", len(cluster))
+            failures += 1
             continue
         if parsed is None:
+            failures += 1
             continue
 
         equipment_tags = sorted({tag for f in cluster for tag in f["equipment_tags"]})
@@ -176,6 +186,7 @@ async def synthesise_root_cause(state: PatternState) -> PatternState:
             }
         )
     state["patterns"] = patterns
+    state["gemini_failures"] = failures
     return state
 
 
@@ -194,25 +205,44 @@ def _build_graph(db: Session):
     return graph.compile()
 
 
-async def _run_graph(db: Session) -> list[dict]:
+async def _run_graph(db: Session) -> dict:
     compiled = _build_graph(db)
-    initial_state: PatternState = {"incident_features": [], "clusters": [], "patterns": []}
+    initial_state: PatternState = {
+        "incident_features": [],
+        "clusters": [],
+        "patterns": [],
+        "gemini_failures": 0,
+    }
     result = await compiled.ainvoke(initial_state)
-    return result["patterns"]
+    return {"patterns": result["patterns"], "gemini_failures": result["gemini_failures"]}
 
 
 def run_pattern_analysis() -> int:
     """Background task entry point. Returns the number of patterns stored.
 
     Never raises: a failed run is logged server-side and leaves the
-    existing patterns table untouched (SO-03).
+    existing patterns table untouched (SO-03). This also covers a partial
+    failure: if every cluster's Gemini call failed and zero patterns came
+    out of it, that is a broken run, not a genuinely-empty one — the
+    existing patterns table must not be wiped in that case either.
     """
     with SessionLocal() as db:
         try:
-            patterns = asyncio.run(_run_graph(db))
+            result = asyncio.run(_run_graph(db))
         except Exception:
             logger.exception("Pattern engine run failed")
             return 0
+
+        patterns = result["patterns"]
+        gemini_failures = result["gemini_failures"]
+
+        if gemini_failures and not patterns:
+            logger.error(
+                "Pattern engine: %d cluster(s) failed synthesis and produced zero patterns; "
+                "leaving existing patterns untouched",
+                gemini_failures,
+            )
+            return db.query(Pattern).count()
 
         now = datetime.now(timezone.utc).isoformat()
         db.query(Pattern).delete()

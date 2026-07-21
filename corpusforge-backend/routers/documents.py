@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile
 from fastapi.responses import RedirectResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from core.dependencies import get_db
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".xlsx", ".xls", ".csv", ".txt"}
 MAX_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
+UPLOAD_READ_CHUNK_BYTES = 1024 * 1024  # 1 MB
 
 # Magic bytes per extension (SO-05 check 3). CSV/TXT are plain text — no magic bytes.
 MAGIC_BYTES = {
@@ -64,6 +66,23 @@ def validate_uuid(value: str) -> str:
         raise ApiError(400, "Invalid ID format.", "invalid_id")
 
 
+async def _read_bounded(file: UploadFile, max_bytes: int) -> bytes:
+    """Read at most `max_bytes` + 1 bytes rather than buffering the whole client-controlled
+    body first — a bare `await file.read()` has no upper bound of its own, so an oversized
+    or malicious upload gets fully loaded into memory before the size check ever runs."""
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(UPLOAD_READ_CHUNK_BYTES)
+        if not chunk:
+            break
+        total += len(chunk)
+        chunks.append(chunk)
+        if total > max_bytes:
+            raise ApiError(413, "File exceeds the 50 MB size limit.", "file_too_large")
+    return b"".join(chunks)
+
+
 def get_document_or_404(document_id: str, db: Session) -> Document:
     validate_uuid(document_id)
     doc = db.query(Document).filter_by(id=document_id).first()
@@ -78,9 +97,7 @@ async def upload_document(file: UploadFile, background_tasks: BackgroundTasks, d
     if ext not in ALLOWED_EXTENSIONS:
         raise ApiError(415, f"File type '{ext}' is not supported.", "unsupported_file_type")
 
-    file_bytes = await file.read()
-    if len(file_bytes) > MAX_SIZE_BYTES:
-        raise ApiError(413, "File exceeds the 50 MB size limit.", "file_too_large")
+    file_bytes = await _read_bounded(file, MAX_SIZE_BYTES)
     if not file_bytes:
         raise ApiError(422, "File is empty.", "empty_file")
 
@@ -103,6 +120,7 @@ async def upload_document(file: UploadFile, background_tasks: BackgroundTasks, d
         logger.exception("Storage upload failed for document %s", document_id)
         raise ApiError(500, "File storage failed. Please try again.", "storage_upload_failed")
 
+    next_cast_number = (db.query(func.max(Document.cast_number)).scalar() or 0) + 1
     doc = Document(
         id=document_id,
         filename=safe_name,
@@ -111,9 +129,19 @@ async def upload_document(file: UploadFile, background_tasks: BackgroundTasks, d
         status="processing",
         content_hash=content_hash,
         uploaded_at=datetime.now(timezone.utc).isoformat(),
+        cast_number=next_cast_number,
     )
     db.add(doc)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to save document record for %s; removing orphaned upload", document_id)
+        try:
+            file_storage.delete_file(storage_path)
+        except Exception:
+            logger.warning("Cleanup of orphaned blob failed for document %s", document_id)
+        raise ApiError(500, "Failed to save document. Please try again.", "document_save_failed")
     logger.info("Document %s uploaded (ext %s), queued for processing", document_id, ext)
 
     background_tasks.add_task(process_document, document_id, file_bytes)
@@ -134,6 +162,7 @@ def list_documents(db: Session = Depends(get_db)):
             entity_count=d.entity_count or 0,
             uploaded_at=d.uploaded_at,
             error_msg=d.error_msg,
+            cast_number=d.cast_number,
         ).model_dump()
         for d in docs
     ]
@@ -174,11 +203,17 @@ def get_document_status(document_id: str, db: Session = Depends(get_db)):
 def delete_document(document_id: str, db: Session = Depends(get_db)):
     doc = get_document_or_404(document_id, db)
 
+    # Storage/vector cleanup must succeed before the document row is deleted — the row is
+    # the only record that cleanup is still owed, so deleting it after a failed cleanup step
+    # would orphan the blob/vectors with no way to ever retry. A failed delete here is safe to
+    # retry: the row survives, and both cleanup calls are no-ops against an already-removed
+    # target.
     if doc.file_url:
         try:
             file_storage.delete_file(doc.file_url)
         except Exception:
-            logger.warning("Storage delete failed for document %s", document_id)
+            logger.exception("Storage delete failed for document %s", document_id)
+            raise ApiError(502, "Could not delete this document right now. Please try again.", "delete_failed")
 
     try:
         # Lazy import: keeps ChromaDB out of unit tests that never touch vectors
@@ -186,7 +221,8 @@ def delete_document(document_id: str, db: Session = Depends(get_db)):
 
         vector_store.delete_document(document_id)
     except Exception:
-        logger.warning("Vector cleanup failed for document %s", document_id)
+        logger.exception("Vector cleanup failed for document %s", document_id)
+        raise ApiError(502, "Could not delete this document right now. Please try again.", "delete_failed")
 
     # SQLite does not enforce FK cascades by default — delete children explicitly
     db.query(Relationship).filter_by(source_document_id=document_id).delete()

@@ -23,7 +23,9 @@ export default function WorkOrderEvidencePanel({ detail }: WorkOrderEvidencePane
       <div className="w-full max-w-md">
         <div className="flex items-baseline gap-2">
           <h2 className="text-xl font-bold text-text-primary">{entity.name}</h2>
-          <span className="font-mono text-2xs text-text-muted shrink-0">{castNumber(entity.id, 'REC')}</span>
+          {entity.cast_number !== null && (
+            <span className="font-mono text-2xs text-text-muted shrink-0">{castNumber(entity.cast_number, 'REC')}</span>
+          )}
         </div>
         <div className="flex items-center gap-2 mt-1.5">
           <span

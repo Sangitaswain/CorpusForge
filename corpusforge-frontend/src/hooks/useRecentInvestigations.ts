@@ -11,7 +11,8 @@ const MAX_ITEMS = 8;
 function read(): string[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
+    const value: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(value) && value.every((item) => typeof item === 'string') ? value : [];
   } catch {
     return [];
   }

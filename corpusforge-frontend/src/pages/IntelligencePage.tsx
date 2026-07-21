@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, Loader2, RefreshCw, SearchX, ShieldCheck } from 'lucide-react';
 import { usePatterns, useRunPatternAnalysis, useCompliance, useRunComplianceCheck } from '../hooks/useIntelligence';
 import { exportComplianceReport } from '../api/intelligence';
@@ -55,6 +55,13 @@ function FailurePatternsTab() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { data: patterns, isLoading, error, refetch } = usePatterns();
   const runAnalysis = useRunPatternAnalysis();
+  const baselineLastRunAt = useRef<string | null>(null);
+
+  const lastRunAt =
+    patterns?.reduce<string | null>(
+      (latest, p) => (!latest || (p.last_run_at && p.last_run_at > latest) ? p.last_run_at : latest),
+      null,
+    ) ?? null;
 
   useEffect(() => {
     if (!isAnalyzing) return;
@@ -66,16 +73,21 @@ function FailurePatternsTab() {
     };
   }, [isAnalyzing, refetch]);
 
+  // Stop polling as soon as a freshly-fetched last_run_at shows the run actually finished,
+  // instead of always waiting out the full POLL_TIMEOUT_MS fallback. A run that finds
+  // genuinely zero patterns has no row to carry a fresh timestamp on, so the timeout above
+  // stays as the fallback for that case specifically.
+  useEffect(() => {
+    if (isAnalyzing && lastRunAt !== baselineLastRunAt.current) {
+      setIsAnalyzing(false);
+    }
+  }, [isAnalyzing, lastRunAt]);
+
   const handleRun = () => {
+    baselineLastRunAt.current = lastRunAt;
     setIsAnalyzing(true);
     runAnalysis.mutate();
   };
-
-  const lastRunAt =
-    patterns?.reduce<string | null>(
-      (latest, p) => (!latest || (p.last_run_at && p.last_run_at > latest) ? p.last_run_at : latest),
-      null,
-    ) ?? null;
 
   return (
     <>
@@ -108,8 +120,10 @@ function ComplianceGapsTab() {
   const [isChecking, setIsChecking] = useState(false);
   const [verdictFilter, setVerdictFilter] = useState<'all' | ComplianceVerdict>('all');
   const [regulationFilter, setRegulationFilter] = useState<string>('all');
+  const [exportError, setExportError] = useState<string | null>(null);
   const { data, isLoading, error, refetch } = useCompliance();
   const runCheck = useRunComplianceCheck();
+  const baselineLastRunAt = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isChecking) return;
@@ -121,19 +135,34 @@ function ComplianceGapsTab() {
     };
   }, [isChecking, refetch]);
 
+  // Same early-clear as FailurePatternsTab: stop polling once summary.last_run_at moves,
+  // instead of always waiting out the full POLL_TIMEOUT_MS fallback.
+  useEffect(() => {
+    const lastRunAt = data?.summary.last_run_at ?? null;
+    if (isChecking && lastRunAt !== baselineLastRunAt.current) {
+      setIsChecking(false);
+    }
+  }, [isChecking, data]);
+
   const handleRun = () => {
+    baselineLastRunAt.current = data?.summary.last_run_at ?? null;
     setIsChecking(true);
     runCheck.mutate();
   };
 
   const handleExport = async () => {
-    const blob = await exportComplianceReport();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `CorpusForge_Compliance_Report_${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    setExportError(null);
+    try {
+      const blob = await exportComplianceReport();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CorpusForge_Compliance_Report_${new Date().toISOString().split('T')[0]}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Export failed. Please try again.');
+    }
   };
 
   const gaps = data?.gaps ?? [];
@@ -180,6 +209,7 @@ function ComplianceGapsTab() {
 
       {isLoading && <LoadingSpinner />}
       {error && <ErrorBanner message={error.message} />}
+      {exportError && <ErrorBanner message={exportError} />}
 
       {!isLoading && !error && data && (
         <>

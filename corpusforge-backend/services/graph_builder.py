@@ -58,6 +58,9 @@ class GraphBuilder:
                 name=entity.normalized_value or entity.value,
                 type=entity.entity_type,
                 document_ids=[entity.document_id],
+                # Cast Number: node_id is this (canonical/first) row's id, so its cast_number
+                # is the one permanent number for the whole merged node too.
+                cast_number=entity.cast_number,
             )
         else:
             docs = self.G.nodes[node_id]["document_ids"]
@@ -111,6 +114,10 @@ class GraphBuilder:
                     {focus_id} | set(self.G.neighbors(focus_id)) | set(self.G.predecessors(focus_id))
                 )
                 G_sub = self.G.subgraph(subgraph_nodes)
+            else:
+                # A focus value that matches no real node must return an empty result, not
+                # silently fall back to the entire graph.
+                G_sub = self.G.subgraph(set())
         # NODE-4 — `date` entities are never drawn as floating canvas nodes; they surface
         # only through the Coordinate Rail (PANEL-8, get_timeline_for_node), which reads
         # them straight from the DB rather than from graph edges.
@@ -126,6 +133,7 @@ class GraphBuilder:
                     "name": attrs.get("name"),
                     "type": attrs.get("type"),
                     "document_count": len(set(attrs.get("document_ids", []))),
+                    "cast_number": attrs.get("cast_number"),
                     # IA-4/IA-5 — total real connections in the full graph, vs. however many
                     # of them are actually drawn in this (possibly ego-limited) response. Lets
                     # the frontend render a "+N more" affordance honestly instead of guessing.
@@ -149,8 +157,8 @@ class GraphBuilder:
     def get_neighbours_with_metadata(self, node_id: str, db: Session) -> list[dict]:
         if node_id not in self.G:
             return []
-        result = []
         seen: set[str] = set()
+        neighbours: list[tuple[str, dict]] = []
         for neighbour_id in list(self.G.neighbors(node_id)) + list(self.G.predecessors(node_id)):
             if neighbour_id in seen:
                 continue
@@ -160,8 +168,19 @@ class GraphBuilder:
                 if self.G.has_edge(node_id, neighbour_id)
                 else self.G.edges[neighbour_id, node_id]
             )
+            neighbours.append((neighbour_id, edge_data))
+
+        # One batched query for every edge's document instead of one query per neighbour,
+        # same fix as get_timeline_for_node.
+        doc_ids = {edge_data.get("document_id") for _, edge_data in neighbours if edge_data.get("document_id")}
+        doc_cache: dict[str, Document] = {
+            doc.id: doc for doc in db.query(Document).filter(Document.id.in_(doc_ids)).all()
+        }
+
+        result = []
+        for neighbour_id, edge_data in neighbours:
             neighbour_attrs = self.G.nodes[neighbour_id]
-            doc = db.query(Document).filter_by(id=edge_data.get("document_id")).first()
+            doc = doc_cache.get(edge_data.get("document_id"))
             result.append(
                 {
                     "id": neighbour_id,
@@ -339,7 +358,7 @@ def build_violates_edges(db: Session) -> int:
     created = 0
     gaps = db.query(ComplianceGap).filter(ComplianceGap.verdict.in_(VIOLATION_VERDICTS)).all()
     for gap in gaps:
-        if not gap.matched_procedure_id:
+        if not gap.matched_procedure_id or not gap.regulation_ref:
             continue
         regulation_node_id = graph_builder.find_node_by_value(gap.regulation_ref)
         if regulation_node_id is None:

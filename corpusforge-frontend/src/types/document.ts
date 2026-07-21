@@ -10,6 +10,7 @@ export interface Document {
   entity_count: number;
   uploaded_at: string;
   error_msg?: string | null;
+  cast_number: number;
 }
 
 export interface UploadResponse {

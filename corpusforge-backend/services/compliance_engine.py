@@ -64,6 +64,7 @@ class ComplianceState(TypedDict):
     clauses: list[ClauseRecord]
     gaps: list[dict]
     gemini_calls: int
+    gemini_failures: int
 
 
 def _derive_regulation_ref(filename: str) -> str:
@@ -137,7 +138,12 @@ def _to_gap_row(clause: ClauseRecord) -> dict:
 
 
 async def _gemini_call(prompt: str, state: ComplianceState) -> str | None:
-    """Shared rate-limited Gemini call, tracked across both nodes that use it."""
+    """Shared rate-limited Gemini call, tracked across both nodes that use it.
+
+    Increments `gemini_failures` on any exception so `run_compliance_check` can tell a
+    systemic Gemini outage (which must never wipe the compliance_gaps table) apart from a
+    genuinely clean run that just found nothing to flag.
+    """
     if state["gemini_calls"] > 0:
         await asyncio.sleep(4)  # 15 req/min Gemini free tier — never remove
     state["gemini_calls"] += 1
@@ -148,33 +154,52 @@ async def _gemini_call(prompt: str, state: ComplianceState) -> str | None:
         return response.text
     except Exception:
         logger.exception("Gemini compliance engine call failed")
+        state["gemini_failures"] += 1
         return None
 
 
 async def extract_clauses(state: ComplianceState, db: Session) -> ComplianceState:
-    """Node 1: split every regulation document into numbered clauses via the ORM only (SO-07)."""
+    """Node 1: split every regulation document into numbered clauses via the ORM only (SO-07).
+
+    A regulation document is windowed into DOCUMENT_TEXT_CHAR_LIMIT-sized slices rather than
+    truncated to the first window — a doc longer than one window used to silently drop every
+    clause past the cutoff, with nothing to indicate data was lost. Most regulation docs fit
+    in a single window (one Gemini call, same as before); only a longer doc costs extra calls.
+    """
     clauses: list[ClauseRecord] = []
     reg_docs = db.query(Document).filter_by(doc_type="regulation", status="done").all()
     for doc in reg_docs:
         chunks = db.query(Chunk).filter_by(document_id=doc.id).order_by(Chunk.chunk_index).all()
-        doc_text = " ".join(c.text for c in chunks)[:DOCUMENT_TEXT_CHAR_LIMIT]
-        if not doc_text:
+        full_text = " ".join(c.text for c in chunks)
+        if not full_text:
             continue
 
-        prompt = clause_extraction_prompt(doc.original_name, doc_text)
-        raw_text = await _gemini_call(prompt, state)
-        if raw_text is None:
-            continue
+        windows = [
+            full_text[i : i + DOCUMENT_TEXT_CHAR_LIMIT]
+            for i in range(0, len(full_text), DOCUMENT_TEXT_CHAR_LIMIT)
+        ]
 
-        for item in _parse_clause_json(raw_text):
-            clauses.append(
-                {
-                    "clause_number": item["clause_number"],
-                    "clause_text": item["clause_text"],
-                    "regulation_ref": item["regulation_ref"] or _derive_regulation_ref(doc.original_name),
-                    "reg_document_id": doc.id,
-                }
-            )
+        seen_clause_numbers: set[str] = set()
+        for window_text in windows:
+            prompt = clause_extraction_prompt(doc.original_name, window_text)
+            raw_text = await _gemini_call(prompt, state)
+            if raw_text is None:
+                continue
+
+            for item in _parse_clause_json(raw_text):
+                # A clause straddling a window boundary can be (re-)reported by the window on
+                # either side — keep the first, complete occurrence rather than a duplicate row.
+                if item["clause_number"] in seen_clause_numbers:
+                    continue
+                seen_clause_numbers.add(item["clause_number"])
+                clauses.append(
+                    {
+                        "clause_number": item["clause_number"],
+                        "clause_text": item["clause_text"],
+                        "regulation_ref": item["regulation_ref"] or _derive_regulation_ref(doc.original_name),
+                        "reg_document_id": doc.id,
+                    }
+                )
     state["clauses"] = clauses
     logger.info("Compliance engine extracted %d clauses from %d regulation documents", len(clauses), len(reg_docs))
     return state
@@ -264,25 +289,44 @@ def _build_graph(db: Session):
     return graph.compile()
 
 
-async def _run_graph(db: Session) -> list[dict]:
+async def _run_graph(db: Session) -> dict:
     compiled = _build_graph(db)
-    initial_state: ComplianceState = {"clauses": [], "gaps": [], "gemini_calls": 0}
+    initial_state: ComplianceState = {
+        "clauses": [],
+        "gaps": [],
+        "gemini_calls": 0,
+        "gemini_failures": 0,
+    }
     result = await compiled.ainvoke(initial_state)
-    return result["gaps"]
+    return {"gaps": result["gaps"], "gemini_failures": result["gemini_failures"]}
 
 
 def run_compliance_check() -> int:
     """Background task entry point. Returns the number of compliance_gaps rows stored.
 
     Never raises: a failed run is logged server-side and leaves the
-    existing compliance_gaps table untouched (SO-03).
+    existing compliance_gaps table untouched (SO-03). Also covers a partial
+    failure: if every Gemini call in the run failed (e.g. a quota outage)
+    and zero gap rows came out of it, that's a broken run, not a genuinely
+    clean one — the existing compliance_gaps table must not be wiped either.
     """
     with SessionLocal() as db:
         try:
-            gaps = asyncio.run(_run_graph(db))
+            result = asyncio.run(_run_graph(db))
         except Exception:
             logger.exception("Compliance engine run failed")
             return 0
+
+        gaps = result["gaps"]
+        gemini_failures = result["gemini_failures"]
+
+        if gemini_failures and not gaps:
+            logger.error(
+                "Compliance engine: %d Gemini call(s) failed and produced zero gap rows; "
+                "leaving existing compliance_gaps untouched",
+                gemini_failures,
+            )
+            return db.query(ComplianceGap).count()
 
         now = datetime.now(timezone.utc).isoformat()
         db.query(ComplianceGap).delete()

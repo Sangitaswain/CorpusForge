@@ -31,14 +31,20 @@ export default function DashboardPage() {
   const documentsQuery = useDocuments();
   const patternsQuery = usePatterns();
   const complianceQuery = useCompliance();
-  const graphQuery = useGraph();
+  // DashboardPage's "AI Knowledge" KPI needs the real relationship count, so it opts back
+  // into loading the full graph explicitly — the default-disabled-without-focus behavior
+  // (Knowledge_Graph_Design_Bible.md IA-1) is about the investigation canvas, not this stat.
+  const graphQuery = useGraph(undefined, { enabled: true });
 
   const { data: documents, isLoading: documentsLoading, error: documentsError } = documentsQuery;
-  const { data: patterns, isLoading: patternsLoading } = patternsQuery;
-  const { data: compliance, isLoading: complianceLoading } = complianceQuery;
-  const { data: graph, isLoading: graphLoading } = graphQuery;
+  const { data: patterns, isLoading: patternsLoading, error: patternsError } = patternsQuery;
+  const { data: compliance, isLoading: complianceLoading, error: complianceError } = complianceQuery;
+  const { data: graph, isLoading: graphLoading, error: graphError } = graphQuery;
 
   const isLoading = documentsLoading || patternsLoading || complianceLoading || graphLoading;
+  // Any one of the four queries failing must block derived stats, not just documentsError —
+  // otherwise a failed compliance/pattern/graph fetch still renders "All systems normal."
+  const queryError = documentsError || patternsError || complianceError || graphError;
 
   const docs = useMemo(() => documents ?? [], [documents]);
   const pats = useMemo(() => patterns ?? [], [patterns]);
@@ -75,9 +81,9 @@ export default function DashboardPage() {
           : 'All systems normal.'}
       </p>
 
-      {documentsError && (
+      {queryError && (
         <div className="mt-6">
-          <ErrorBanner message={documentsError.message} />
+          <ErrorBanner message={queryError instanceof Error ? queryError.message : 'Something went wrong.'} />
         </div>
       )}
       {isLoading && (
@@ -86,7 +92,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {!isLoading && !documentsError && (
+      {!isLoading && !queryError && (
         <div className="flex flex-col gap-6 mt-6">
           <SystemStatusStrip processingCount={processingCount} failedCount={failedCount} lastSyncedAt={lastSyncedAt} />
 

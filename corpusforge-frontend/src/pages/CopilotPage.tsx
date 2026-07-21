@@ -13,8 +13,13 @@ export default function CopilotPage() {
   const location = useLocation();
   const threadEndRef = useRef<HTMLDivElement>(null);
   const askedFromState = useRef(false);
+  const submissionInFlight = useRef(false);
 
   const handleSubmit = async (question: string) => {
+    // Guards against a double-submit (e.g. a follow-up click landing while the previous
+    // question is still in flight) queuing a second overlapping request.
+    if (submissionInFlight.current) return;
+    submissionInFlight.current = true;
     setMessages((prev) => [
       ...prev,
       { id: crypto.randomUUID(), type: 'question', content: question, timestamp: new Date() },
@@ -38,6 +43,8 @@ export default function CopilotPage() {
           timestamp: new Date(),
         },
       ]);
+    } finally {
+      submissionInFlight.current = false;
     }
   };
 

@@ -10,7 +10,7 @@ export function useGraph(focus?: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['graph', focus ?? ''],
     queryFn: () => getGraph(focus),
-    enabled: options?.enabled ?? true,
+    enabled: options?.enabled ?? Boolean(focus),
   });
 }
 

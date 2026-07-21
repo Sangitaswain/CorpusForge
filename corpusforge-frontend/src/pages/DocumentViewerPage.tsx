@@ -8,7 +8,11 @@ export default function DocumentViewerPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const id = params.get('id');
-  const page = params.get('page');
+  const rawPage = params.get('page');
+  // Only a genuine positive integer is a valid page — anything else (non-numeric, 0,
+  // negative) is treated as "no page" rather than forwarded as-is to the backend, which
+  // would otherwise happily build a broken file URL like `?page=NaN`.
+  const page = rawPage !== null && /^\d+$/.test(rawPage) && Number(rawPage) >= 1 ? Number(rawPage) : undefined;
   const { data: documents } = useDocuments();
 
   if (!id) {
@@ -20,7 +24,7 @@ export default function DocumentViewerPage() {
   }
 
   const doc = documents?.find((d) => d.id === id);
-  const fileUrl = getDocumentFileUrl(id, page ? Number(page) : undefined);
+  const fileUrl = getDocumentFileUrl(id, page);
 
   return (
     <div className="h-full flex flex-col">

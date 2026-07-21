@@ -35,5 +35,5 @@ export const getDocumentStatus = async (id: string): Promise<DocumentStatusRespo
 export const getDocumentFileUrl = (id: string, page?: number): string => {
   const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
   const url = `${base}/documents/${id}/file`;
-  return page ? `${url}?page=${page}` : url;
+  return page !== undefined ? `${url}?page=${page}` : url;
 };

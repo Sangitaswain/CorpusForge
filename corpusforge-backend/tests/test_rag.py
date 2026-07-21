@@ -125,6 +125,18 @@ def test_query_prompt_injection_does_not_override(test_client, seeded_document):
     assert response.status_code == 200
     assert "INJECTED" not in response.json()["data"]["answer"]
 
+    # The mocked response alone doesn't prove isolation — a broken prompt template could
+    # still merge the untrusted question into the instruction rules and this assertion
+    # would still pass, since the fixed mock always returns the same safe text regardless
+    # of what prompt it's called with. Inspect the actual prompt sent to Gemini and confirm
+    # the injection payload landed only inside the delimited QUESTION: section (SO-06).
+    sent_prompt = gemini.generate_content.call_args[0][0]
+    question_marker = "QUESTION:\n"
+    assert question_marker in sent_prompt
+    rules_and_context, _, question_section = sent_prompt.partition(question_marker)
+    assert injection not in rules_and_context
+    assert injection in question_section
+
 
 def test_gemini_failure_returns_structured_error(test_client, seeded_document):
     hits = [
