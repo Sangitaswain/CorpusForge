@@ -57,7 +57,9 @@ export default function GraphSearch({ onSearch, activeFocus }: GraphSearchProps)
               }
             }}
             placeholder="Search P-101, INC-2022-07…"
-            className="bg-bg-elevated border border-border-default rounded-md pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-teal focus:ring-1 focus:ring-accent-teal/20 transition-fast w-44 sm:w-56"
+            // text-md (16px), not text-sm (13px) — avoids iOS Safari's auto-zoom-on-focus
+            // for inputs under 16px.
+            className="bg-bg-elevated border border-border-default rounded-md pl-9 pr-3 py-2 text-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-teal focus:ring-1 focus:ring-accent-teal/20 transition-fast w-44 sm:w-56"
           />
         </div>
         {activeFocus && (

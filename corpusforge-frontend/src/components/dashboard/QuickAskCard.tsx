@@ -36,7 +36,9 @@ export default function QuickAskCard() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="Ask about your plant..."
-          className="w-full bg-bg-elevated border border-border-default rounded-md pl-9 pr-3.5 py-2.5 text-sm text-text-primary
+          // text-md (16px), not text-sm (13px) — avoids iOS Safari's auto-zoom-on-focus
+          // for inputs under 16px.
+          className="w-full bg-bg-elevated border border-border-default rounded-md pl-9 pr-3.5 py-2.5 text-md text-text-primary
                      placeholder:text-text-muted focus:outline-none focus:border-accent-teal focus:ring-1
                      focus:ring-accent-teal/20 transition-fast min-h-[44px]"
         />

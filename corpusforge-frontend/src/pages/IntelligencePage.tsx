@@ -227,10 +227,12 @@ function ComplianceGapsTab() {
 
           {gaps.length > 0 && (
             <div className="flex flex-wrap gap-3">
+              {/* text-md (16px), not text-sm (13px) — avoids iOS Safari's auto-zoom-on-focus
+                  on <select> elements, same rule as text inputs. */}
               <select
                 value={regulationFilter}
                 onChange={(e) => setRegulationFilter(e.target.value)}
-                className="bg-bg-surface border border-border-default rounded-md px-3 py-2 text-sm text-text-primary min-h-[44px]"
+                className="bg-bg-surface border border-border-default rounded-md px-3 py-2 text-md text-text-primary min-h-[44px]"
               >
                 <option value="all">All regulations</option>
                 {regulations.map((ref) => (
@@ -242,7 +244,7 @@ function ComplianceGapsTab() {
               <select
                 value={verdictFilter}
                 onChange={(e) => setVerdictFilter(e.target.value as 'all' | ComplianceVerdict)}
-                className="bg-bg-surface border border-border-default rounded-md px-3 py-2 text-sm text-text-primary min-h-[44px]"
+                className="bg-bg-surface border border-border-default rounded-md px-3 py-2 text-md text-text-primary min-h-[44px]"
               >
                 <option value="all">All verdicts</option>
                 <option value="compliant">Compliant</option>

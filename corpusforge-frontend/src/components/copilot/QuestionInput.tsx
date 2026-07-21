@@ -44,7 +44,10 @@ export default function QuestionInput({ onSubmit, isLoading }: QuestionInputProp
             onKeyDown={handleKeyDown}
             rows={1}
             placeholder="Ask anything about your plant documents..."
-            className="flex-1 bg-bg-surface border border-border-default rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-muted resize-none min-h-[44px] max-h-[200px] overflow-y-auto focus:outline-none focus:border-accent-teal focus:ring-1 focus:ring-accent-teal/20 transition-fast"
+            // text-md (16px) specifically, not text-sm/text-base (13px/15px in this
+            // project's custom scale) — iOS Safari auto-zooms the whole page on focus for
+            // any input under 16px, which would visibly hijack the mobile Ask Forge demo.
+            className="flex-1 bg-bg-surface border border-border-default rounded-xl px-4 py-3 text-md text-text-primary placeholder:text-text-muted resize-none min-h-[44px] max-h-[200px] overflow-y-auto focus:outline-none focus:border-accent-teal focus:ring-1 focus:ring-accent-teal/20 transition-fast"
           />
           <button
             onClick={submit}
