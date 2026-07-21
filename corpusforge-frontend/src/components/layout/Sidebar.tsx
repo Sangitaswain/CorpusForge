@@ -14,6 +14,7 @@ import {
   Sun,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
+import { useAlertCount } from '../../hooks/useAlerts';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -29,6 +30,8 @@ const STORAGE_KEY = 'cf-sidebar-collapsed';
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(STORAGE_KEY) === '1');
   const { theme, toggleTheme } = useTheme();
+  const { data: alertCount } = useAlertCount();
+  const unreadCount = alertCount?.unread_count ?? 0;
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
@@ -58,14 +61,24 @@ export default function Sidebar() {
             to={to}
             title={label}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-fast min-h-[44px] ${
+              `relative flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-fast min-h-[44px] ${
                 isActive
                   ? 'bg-accent-teal text-white'
                   : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
               }`
             }
           >
-            <Icon size={18} className="shrink-0" />
+            <span className="relative shrink-0">
+              <Icon size={18} />
+              {to === '/alerts' && unreadCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-semibold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1"
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </span>
             <span className={`whitespace-nowrap ${collapsed ? 'hidden' : 'inline'} max-sm:hidden`}>{label}</span>
           </NavLink>
         ))}
