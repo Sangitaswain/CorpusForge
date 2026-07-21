@@ -10,6 +10,17 @@ def test_compliance_run_endpoint_returns_accepted(test_client):
     assert "message" in response.json()["data"]
 
 
+def test_compliance_run_endpoint_never_calls_the_real_engine(test_client, mock_background_engines):
+    """Regression test: run_compliance_check opens its own SessionLocal() rather than
+    accepting a db session, so the test_client/get_db override alone does not stop it from
+    hitting the real on-disk database and real Gemini API. Only mock_background_engines
+    (conftest.py) does. If this test starts failing, a real compliance run is firing during
+    the test suite again."""
+    _, compliance_mock = mock_background_engines
+    test_client.post("/api/v1/intelligence/compliance/run")
+    assert compliance_mock.called
+
+
 def test_get_compliance_returns_correct_schema(test_client):
     response = test_client.get("/api/v1/intelligence/compliance")
     assert response.status_code == 200

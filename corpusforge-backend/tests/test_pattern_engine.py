@@ -12,6 +12,17 @@ def test_pattern_run_endpoint_returns_accepted(test_client):
     assert "message" in response.json()["data"]
 
 
+def test_pattern_run_endpoint_never_calls_the_real_engine(test_client, mock_background_engines):
+    """Regression test: run_pattern_analysis opens its own SessionLocal() rather than
+    accepting a db session, so the test_client/get_db override alone does not stop it from
+    hitting the real on-disk database and real Gemini API. Only mock_background_engines
+    (conftest.py) does. If this test starts failing, a real pattern run is firing during
+    the test suite again."""
+    pattern_mock, _ = mock_background_engines
+    test_client.post("/api/v1/intelligence/patterns/run")
+    assert pattern_mock.called
+
+
 def test_get_patterns_returns_array(test_client):
     response = test_client.get("/api/v1/intelligence/patterns")
     assert response.status_code == 200

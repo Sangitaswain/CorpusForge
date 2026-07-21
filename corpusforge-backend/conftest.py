@@ -30,6 +30,23 @@ def mock_pipeline():
         yield mock
 
 
+@pytest.fixture(autouse=True)
+def mock_background_engines():
+    """Don't run the real pattern/compliance engines (Gemini) in unit tests.
+
+    Both run_pattern_analysis and run_compliance_check open their own SessionLocal()
+    rather than accepting a db session — the test_client/get_db override has no effect on
+    them. TestClient runs BackgroundTasks synchronously, so a test hitting
+    POST /intelligence/patterns/run or /compliance/run without this mock fires a REAL
+    Gemini call against the REAL on-disk dev database, not the isolated in-memory test_db —
+    burning real API quota and silently overwriting real data. Same class of bug
+    mock_pipeline already prevents for ingestion, just missing here until now.
+    """
+    with patch("routers.intelligence.run_pattern_analysis") as pattern_mock, \
+         patch("routers.intelligence.run_compliance_check") as compliance_mock:
+        yield pattern_mock, compliance_mock
+
+
 @pytest.fixture(scope="function")
 def test_db():
     engine = create_engine(
