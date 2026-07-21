@@ -13,6 +13,16 @@ export const SEVERITY_ACCENT_BORDER: Record<Severity, string> = {
   Low: 'border-l-green-400',
 };
 
+// Same color scale as SeverityBadge's dots — shared here so AlertTypeIcon (and any future
+// consumer) doesn't hand-maintain its own copy that could drift out of sync.
+export const SEVERITY_TEXT_COLOR: Record<Severity, string> = {
+  'Audit-Critical': 'text-red-500',
+  Critical: 'text-red-400',
+  High: 'text-orange-400',
+  Medium: 'text-amber-400',
+  Low: 'text-green-400',
+};
+
 // Knowledge_Graph_Design_Bible.md NODE-6 — sourced from NODE_PALETTE, the single
 // source of truth also consumed by tailwind.config.ts. Do not hardcode these values here.
 export const NODE_COLORS: Record<NodeType, string> = NODE_PALETTE;

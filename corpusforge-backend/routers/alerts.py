@@ -1,6 +1,5 @@
 """F6 Proactive Alerts API endpoints (BP-08)."""
 import json
-import logging
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -11,8 +10,6 @@ from models.alert import Alert
 from models.document import Document
 from routers.documents import validate_uuid
 from services.alert_service import run_all_checks
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 

@@ -55,33 +55,40 @@ export default function Sidebar() {
       </div>
 
       <div className="flex-1 overflow-y-auto py-3 px-2 flex flex-col gap-1">
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            title={label}
-            className={({ isActive }) =>
-              `relative flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-fast min-h-[44px] ${
-                isActive
-                  ? 'bg-accent-teal text-white'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
-              }`
-            }
-          >
-            <span className="relative shrink-0">
-              <Icon size={18} />
-              {to === '/alerts' && unreadCount > 0 && (
-                <span
-                  aria-hidden="true"
-                  className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-semibold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1"
-                >
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </span>
-            <span className={`whitespace-nowrap ${collapsed ? 'hidden' : 'inline'} max-sm:hidden`}>{label}</span>
-          </NavLink>
-        ))}
+        {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
+          const hasUnread = to === '/alerts' && unreadCount > 0;
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              title={hasUnread ? `${label}, ${unreadCount} unread` : label}
+              className={({ isActive }) =>
+                `relative flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-fast min-h-[44px] ${
+                  isActive
+                    ? 'bg-accent-teal text-white'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
+                }`
+              }
+            >
+              <span className="relative shrink-0">
+                <Icon size={18} />
+                {hasUnread && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-semibold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1"
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </span>
+              <span className={`whitespace-nowrap ${collapsed ? 'hidden' : 'inline'} max-sm:hidden`}>{label}</span>
+              {/* Always in the DOM (not tied to the collapsed/mobile-hidden label span above)
+                  so the unread count stays announced to screen readers in the icon-only states
+                  where a sighted user still sees the badge. */}
+              {hasUnread && <span className="sr-only">, {unreadCount} unread</span>}
+            </NavLink>
+          );
+        })}
       </div>
 
       <div className="border-t border-border-subtle p-2 flex flex-col gap-1">
