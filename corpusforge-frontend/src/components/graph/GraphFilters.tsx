@@ -23,7 +23,7 @@ export default function GraphFilters({ hiddenTypes, onToggle }: GraphFiltersProp
             key={type}
             onClick={() => onToggle(type)}
             aria-pressed={active}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-fast min-h-[32px] ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-fast min-h-[32px] max-sm:min-h-[44px] ${
               active
                 ? 'border-border-strong text-text-primary bg-bg-elevated'
                 : 'border-border-subtle text-text-muted bg-transparent opacity-60'

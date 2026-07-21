@@ -68,7 +68,7 @@ export default function GraphSearch({ onSearch, activeFocus }: GraphSearchProps)
               setValue('');
               onSearch('');
             }}
-            className="inline-flex items-center gap-1 text-xs text-accent-teal hover:underline min-h-[32px]"
+            className="inline-flex items-center gap-1 text-xs text-accent-teal hover:underline min-h-[32px] max-sm:min-h-[44px]"
           >
             <X size={12} /> {activeFocus}
           </button>

@@ -9,8 +9,11 @@ interface GraphControlsProps {
 
 const ZOOM_STEP = 1.5;
 
+// Compact on desktop (mouse precision doesn't need a 44px target); bumped to the FP-10
+// minimum only on mobile viewports, matching CitationChip's own min-h-[28px]/max-sm:44px
+// pattern rather than inventing a new one.
 const BUTTON_CLASS =
-  'p-2 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-fast min-h-[36px] min-w-[36px] flex items-center justify-center';
+  'p-2 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-fast min-h-[36px] min-w-[36px] max-sm:min-h-[44px] max-sm:min-w-[44px] flex items-center justify-center';
 
 export default function GraphControls({ graphRef }: GraphControlsProps) {
   const zoomBy = (factor: number) => {

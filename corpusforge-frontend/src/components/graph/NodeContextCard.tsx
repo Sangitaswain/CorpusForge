@@ -74,7 +74,7 @@ export default function NodeContextCard({ node, renderedDegree, x, y, onExpand, 
                 onSetFocus();
                 onClose();
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-bg-elevated transition-fast min-h-[40px]"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-bg-elevated transition-fast min-h-[40px] max-sm:min-h-[44px]"
             >
               <Crosshair size={14} className="text-accent-teal shrink-0" />
               Set as focus
@@ -86,7 +86,7 @@ export default function NodeContextCard({ node, renderedDegree, x, y, onExpand, 
                 onExpand();
                 onClose();
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-bg-elevated transition-fast min-h-[40px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-bg-elevated transition-fast min-h-[40px] max-sm:min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
               <Layers size={14} className="text-accent-teal shrink-0" />
               {moreCount > 0 ? `Expand — ${moreCount} more connection${moreCount === 1 ? '' : 's'}` : 'No further connections'}
