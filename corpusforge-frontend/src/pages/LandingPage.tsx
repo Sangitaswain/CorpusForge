@@ -1,34 +1,34 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, FileText, Layers, Moon, Sun } from 'lucide-react';
+import { ArrowRight, FileText, Layers, Moon, Sun, Upload, Share2, MessageSquareText, type LucideIcon } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useDocuments } from '../hooks/useDocuments';
 import HeroReplay from '../components/landing/HeroReplay';
-import MechanismStrip from '../components/landing/MechanismStrip';
 import GraphShowcase from '../components/landing/GraphShowcase';
-import CopilotShowcase from '../components/landing/CopilotShowcase';
-import PatternShowcase from '../components/landing/PatternShowcase';
-import ComplianceShowcase from '../components/landing/ComplianceShowcase';
-import AlertsShowcase from '../components/landing/AlertsShowcase';
-import ArchitectureDiagram from '../components/landing/ArchitectureDiagram';
-import TrustSignals from '../components/landing/TrustSignals';
 
-function SectionHeading({
-  eyebrow,
+function ProcessCard({
+  icon: Icon,
+  step,
   title,
-  sub,
-  align = 'center',
+  description,
+  terminal,
 }: {
-  eyebrow: string;
+  icon: LucideIcon;
+  step: string;
   title: string;
-  sub?: string;
-  align?: 'center' | 'left';
+  description: string;
+  terminal: string[];
 }) {
-  const isCenter = align === 'center';
   return (
-    <div className={`mb-10 ${isCenter ? 'text-center' : 'text-left'}`}>
-      <p className="text-2xs font-medium tracking-wide uppercase text-accent-teal">{eyebrow}</p>
-      <h2 className="text-2xl font-semibold text-text-primary mt-2">{title}</h2>
-      {sub && <p className={`text-sm text-text-muted mt-2 max-w-[560px] ${isCenter ? 'mx-auto' : ''}`}>{sub}</p>}
+    <div className="bg-bg-surface border border-border-default rounded-lg p-5 flex-1">
+      <Icon size={18} className="text-accent-teal" />
+      <p className="text-2xs font-medium tracking-wide uppercase text-accent-teal mt-3">{step}</p>
+      <h3 className="text-base font-semibold text-text-primary mt-1">{title}</h3>
+      <p className="text-sm text-text-secondary mt-1.5">{description}</p>
+      <div className="bg-bg-elevated rounded-md px-3 py-2 mt-4 font-mono text-2xs text-text-muted leading-relaxed">
+        {terminal.map((line) => (
+          <p key={line}>{line}</p>
+        ))}
+      </div>
     </div>
   );
 }
@@ -39,7 +39,6 @@ export default function LandingPage() {
   const { data: documents } = useDocuments();
 
   const totalDocuments = documents?.length ?? 0;
-  const totalEntities = documents?.reduce((sum, d) => sum + d.entity_count, 0) ?? 0;
 
   return (
     <div className="min-h-dvh bg-bg-base">
@@ -67,130 +66,88 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Scene 1 — Hero: AI understands documents and reasons over them, live. */}
-      <section className="px-4 sm:px-8 pt-14 sm:pt-20 pb-14 max-w-[1100px] mx-auto text-center">
-        <p className="text-xs font-medium tracking-wide uppercase text-text-muted">
-          Industrial Document Intelligence for Bharat Refineries Ltd.
-        </p>
-        <h1 className="text-3xl sm:text-hero font-bold tracking-tight text-text-primary mt-4 leading-tight">
-          One brain for every document<br className="hidden sm:block" /> in your plant.
+      {/* Hero — status pill, monumental headline, one dominant Q&A card. */}
+      <section className="px-4 sm:px-8 pt-16 sm:pt-24 pb-20 max-w-[900px] mx-auto text-center">
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border-default bg-bg-surface text-2xs font-medium text-text-secondary">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent-teal" aria-hidden="true" />
+          CorpusForge Active
+        </span>
+
+        <h1 className="text-4xl sm:text-hero font-bold tracking-tight text-text-primary mt-6 leading-[1.05]">
+          Industrial-grade intelligence
+          <br className="hidden sm:block" /> for every document in your plant.
         </h1>
-        <p className="text-base sm:text-lg text-text-secondary mt-5 max-w-[640px] mx-auto">
-          The failure that repeats because nobody cross-referenced the last one. The clause
-          nobody re-checked after the procedure changed. CorpusForge reads a refinery's manuals,
-          SOPs, incident reports, and regulations once, then catches both before anyone has to ask.
+        <p className="text-base sm:text-lg text-text-secondary mt-5 max-w-[560px] mx-auto">
+          CorpusForge reads a refinery's manuals, SOPs, incident reports, and regulations once —
+          built for the rigorous demands of Bharat Refineries Ltd.
         </p>
 
-        <div className="mt-10">
+        <div className="mt-12">
           <HeroReplay documentCount={totalDocuments} />
         </div>
+      </section>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-10 max-w-[720px] mx-auto">
-          <div className="bg-bg-surface border border-border-default rounded-lg p-4 shadow-card dark:shadow-none">
-            <p className="text-2xl font-bold text-text-primary">{totalDocuments}</p>
-            <p className="text-xs text-text-muted mt-1">Documents ingested</p>
-          </div>
-          <div className="bg-bg-surface border border-border-default rounded-lg p-4 shadow-card dark:shadow-none">
-            <p className="text-2xl font-bold text-text-primary">{totalEntities.toLocaleString()}</p>
-            <p className="text-xs text-text-muted mt-1">Entities extracted</p>
-          </div>
-          <div className="bg-bg-surface border border-border-default rounded-lg p-4 shadow-card dark:shadow-none">
-            <p className="text-2xl font-bold text-text-primary">5</p>
-            <p className="text-xs text-text-muted mt-1">Connected capabilities</p>
-          </div>
-          <div className="bg-bg-surface border border-border-default rounded-lg p-4 shadow-card dark:shadow-none">
-            <p className="text-2xl font-bold text-text-primary">0</p>
-            <p className="text-xs text-text-muted mt-1">Raw SQL statements</p>
+      {/* From unstructured data to actionable intelligence — the real ingest -> map -> query pipeline. */}
+      <section className="px-4 sm:px-8 py-16 border-t border-border-subtle bg-bg-surface">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-semibold text-text-primary">From unstructured data to actionable intelligence.</h2>
+          <p className="text-sm text-text-muted mt-2 max-w-lg">
+            A systematic approach to organizing decades of operational knowledge.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 mt-8">
+            <ProcessCard
+              icon={Upload}
+              step="1. Ingest"
+              title="Ingest"
+              description="Manuals, SOPs, incident reports, and regulations are parsed, chunked, and embedded locally."
+              terminal={['> PARSING: INC-2022-07_P101_Bearing_Failure.txt... OK', '> EXTRACTING: entities, relationships']}
+            />
+            <ProcessCard
+              icon={Share2}
+              step="2. Map"
+              title="Map"
+              description="Entities are linked automatically — equipment, work orders, people, and documents form one graph."
+              terminal={['LINK ESTABLISHED:', '[P-101] -> (maintained_by) -> [R. Nair]']}
+            />
+            <ProcessCard
+              icon={MessageSquareText}
+              step="3. Query"
+              title="Query"
+              description="Ask complex operational questions in plain language. Every answer traces back to an exact source."
+              terminal={['Q: Root cause of P-101 failure?', 'A: Wrong grease (Ref: INC-2022-07)']}
+            />
           </div>
         </div>
       </section>
 
-      {/* Scene 2 — Documents become knowledge. */}
-      <section className="px-4 sm:px-8 py-16 border-t border-border-subtle bg-bg-surface">
-        <SectionHeading
-          eyebrow="Understanding"
-          title="Documents become knowledge."
-          sub="Every document is read exactly once, then understood five different ways."
-        />
-        <MechanismStrip />
-      </section>
-
-      {/* Scene 3 — Investigation Board: the primary product reveal. */}
+      {/* The Investigation Board — the signature scene, real entities from the P-101 case. */}
       <section className="px-4 sm:px-8 py-16 border-t border-border-subtle">
-        <SectionHeading
-          eyebrow="Investigation Board"
-          title="Hidden relationships expose the evidence."
-          sub="Equipment, incidents, work orders, and people connect on their own — nobody hand-draws these edges."
-        />
+        <div className="max-w-4xl mx-auto text-center mb-10">
+          <h2 className="text-2xl font-semibold text-text-primary">The Investigation Board</h2>
+          <p className="text-sm text-text-muted mt-2 max-w-lg mx-auto">
+            Visualize connections across the entire plant hierarchy instantly.
+          </p>
+        </div>
         <GraphShowcase />
       </section>
 
-      {/* Scene 4 — Copilot: every answer is grounded and explainable. */}
-      <section className="px-4 sm:px-8 py-16 border-t border-border-subtle bg-bg-surface">
-        <SectionHeading
-          eyebrow="Expert Copilot"
-          align="left"
-          title="Ask it anything the documents know."
-          sub="Every answer is grounded in the corpus and carries a citation — this is the real chat component, not a mockup."
-        />
-        <CopilotShowcase />
-      </section>
-
-      {/* Scene 5 — Failure Pattern Intelligence: failures repeat, and the system notices. */}
-      <section className="px-4 sm:px-8 py-16 border-t border-border-subtle">
-        <SectionHeading
-          eyebrow="Failure Pattern Intelligence"
-          title="The root cause nobody cross-referenced."
-          sub="Detected automatically from this corpus's incident reports — shown exactly as it appears in the product."
-        />
-        <PatternShowcase />
-      </section>
-
-      {/* Scene 6 — Compliance: verified, not asserted. */}
-      <section className="px-4 sm:px-8 py-16 border-t border-border-subtle bg-bg-surface">
-        <SectionHeading
-          eyebrow="Compliance Gap Detection"
-          title="Every clause, checked against every procedure."
-          sub="Regulatory text extracted automatically and compared line by line — never a verdict invented to fill a gap."
-        />
-        <ComplianceShowcase />
-      </section>
-
-      {/* Scene 7 — Alerts: automatic consequence of new evidence. */}
-      <section className="px-4 sm:px-8 py-16 border-t border-border-subtle">
-        <SectionHeading
-          eyebrow="Proactive Alerts"
-          title="New evidence, checked automatically."
-          sub="A new document arrives, and the graph, patterns, and compliance status all update before anyone asks."
-        />
-        <AlertsShowcase />
-      </section>
-
-      {/* Scene 8 — Trust: every claim is checkable. Architecture and Trust merged, side by side. */}
-      <section className="px-4 sm:px-8 py-16 border-t border-border-subtle bg-bg-surface">
-        <SectionHeading eyebrow="Trust & Rigor" title="Built to be checked, not just believed." />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto items-start">
-          <ArchitectureDiagram />
-          <TrustSignals />
-        </div>
-      </section>
-
-      {/* Scene 9 — Launch Workspace. */}
-      <section className="px-4 sm:px-8 py-16 border-t border-border-subtle">
-        <div className="max-w-[560px] mx-auto text-center">
-          <h2 className="text-2xl font-semibold text-text-primary">Every claim, cited. Every answer, verified.</h2>
-          <p className="text-sm text-text-secondary mt-3">
-            No hallucinated answers. If the corpus does not contain what you asked, Forge says so
-            instead of guessing.
-          </p>
-          <button
-            onClick={() => navigate('/access')}
-            className="inline-flex items-center gap-2 px-6 h-12 rounded-md bg-accent-teal text-white text-sm font-semibold hover:bg-accent-teal-bright transition-fast mt-7"
-          >
-            Launch Workspace
-            <ArrowRight size={16} />
-          </button>
-        </div>
+      {/* Dark closing CTA — deliberate fixed-dark tonal break, exact dark-theme tokens from
+          UI_Design_System.md §2.1, regardless of the active theme toggle. */}
+      <section className="bg-[#070E0D] px-4 sm:px-8 py-20 sm:py-24 text-center">
+        <h2 className="text-2xl sm:text-3xl font-semibold text-[#E8F0EE]">
+          Every answer cited. Every gap caught before it's a problem.
+        </h2>
+        <p className="text-sm sm:text-base text-[#93ADA8] mt-3 max-w-[520px] mx-auto">
+          Grounded in your actual manuals, SOPs, and incident reports — never generic training
+          data, never a guess.
+        </p>
+        <button
+          onClick={() => navigate('/access')}
+          className="inline-flex items-center gap-2 px-6 h-12 rounded-md bg-accent-teal text-white text-sm font-semibold hover:bg-accent-teal-bright transition-fast mt-8"
+        >
+          Launch Workspace
+          <ArrowRight size={16} />
+        </button>
       </section>
 
       <footer className="px-4 sm:px-8 py-8 border-t border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-3 max-w-[1100px] mx-auto">
