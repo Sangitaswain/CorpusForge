@@ -2,25 +2,27 @@
 
 **Forge Intelligence from Industrial Documents**
 
+Built for the ET AI Hackathon.
+
 CorpusForge is an AI-powered knowledge platform for asset-intensive industries. It ingests scattered industrial documents (equipment manuals, maintenance records, safety procedures, incident reports, and regulatory standards) and makes their collective intelligence queryable, connected, and actionable at the point of need.
 
 ## What It Does
 
 - **Universal Document Ingestion**: Upload PDFs (digital or scanned), spreadsheets, and images. CorpusForge extracts text, identifies entities (equipment tags, procedure codes, regulation references, people, dates), and makes everything searchable.
 
-- **Expert Knowledge Copilot**: Ask plain-language questions and get cited answers drawn exclusively from your documents. Every answer includes the source document and page number. Works on mobile.
+- **Expert Knowledge Copilot**: Ask plain language questions and get cited answers drawn exclusively from your documents. Every answer includes the source document and page number. Works on mobile.
 
-- **Knowledge Graph**: Visualises the connections between equipment, procedures, incidents, and regulations across all documents. See how assets, failures, and compliance requirements relate to each other.
+- **Knowledge Graph (Investigation Board)**: Visualises the connections between equipment, procedures, incidents, and regulations across all documents. Pin one entity as the focus and see how assets, failures, and compliance requirements relate to it.
 
 - **Failure Pattern Intelligence**: Automatically detects recurring incident patterns across the document corpus and surfaces connections that no individual review would catch.
 
 - **Compliance Gap Detection**: Maps regulatory clauses against plant procedures and identifies gaps, outdated procedures, and missing coverage.
 
-- **Proactive Alerts**: Surfaces warnings when new documents introduce compliance risks or match known failure patterns, without waiting to be asked. *(in development)*
+- **Proactive Alerts**: Watches the corpus automatically and surfaces a warning the moment a new document matches a known failure pattern, an outdated procedure, a knowledge gap, or a coverage gap, without anyone having to ask.
 
 ## Status
 
-Document ingestion, the Copilot, the Knowledge Graph, Failure Pattern Intelligence, and Compliance Gap Detection are built and working end to end. Proactive Alerts is the current focus. A hosted demo isn't live yet — run it locally with the steps below.
+Document ingestion, the Copilot, the Knowledge Graph, Failure Pattern Intelligence, Compliance Gap Detection, and Proactive Alerts are all built and working end to end. A hosted demo isn't live yet, run it locally with the steps below.
 
 ## Tech Stack
 
@@ -32,7 +34,7 @@ Document ingestion, the Copilot, the Knowledge Graph, Failure Pattern Intelligen
 
 **Storage**: ChromaDB (vector store), SQLite, Supabase Storage
 
-**Deploy**: Vercel (frontend), Fly.io (backend)
+**Designed for**: Vercel (frontend), Fly.io (backend). Not currently deployed, run locally for now.
 
 ## Project Structure
 
@@ -87,3 +89,7 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1
 ## License
 
 MIT
+
+---
+
+Built for the ET AI Hackathon, 2026.
