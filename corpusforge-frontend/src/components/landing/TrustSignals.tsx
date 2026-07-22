@@ -12,7 +12,7 @@ const SIGNALS = [
 
 export default function TrustSignals() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
+    <div className="flex flex-col gap-3 w-full">
       {SIGNALS.map(({ icon: Icon, label }) => (
         <div key={label} className="flex items-start gap-3 bg-bg-surface border border-border-default rounded-lg p-4">
           <Icon size={16} className="text-accent-teal shrink-0 mt-0.5" />
