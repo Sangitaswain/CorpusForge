@@ -363,11 +363,23 @@ def build_violates_edges(db: Session) -> int:
         regulation_node_id = graph_builder.find_node_by_value(gap.regulation_ref)
         if regulation_node_id is None:
             continue
+        # Only the procedure this document actually IS (its own designation, derived from
+        # the filename convention "<CODE>_description.ext") gets a VIOLATES edge — not every
+        # procedure_code entity merely referenced inside its text. SOP-12's document body
+        # names "Related Procedures: SOP-03, SOP-14" in passing; those were never themselves
+        # compared against the regulation, so drawing them a VIOLATES edge would assert a
+        # finding the compliance engine never made — exactly what PANEL-10 forbids.
+        procedure_doc = db.query(Document).filter_by(id=gap.matched_procedure_id).first()
+        own_code = procedure_doc.filename.split("_")[0].strip().lower() if procedure_doc else None
         procedure_entities = (
             db.query(Entity)
             .filter_by(entity_type="procedure_code", document_id=gap.matched_procedure_id)
             .all()
         )
+        if own_code:
+            procedure_entities = [
+                e for e in procedure_entities if (e.normalized_value or e.value or "").strip().lower() == own_code
+            ]
         seen_procedure_nodes: set[str] = set()
         for proc_entity in procedure_entities:
             proc_node_id = graph_builder._entity_to_node.get(proc_entity.id, proc_entity.id)
