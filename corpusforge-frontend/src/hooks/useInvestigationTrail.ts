@@ -32,7 +32,13 @@ export function useInvestigationTrail() {
       // Only a genuinely new step in the trail — reselecting the current focus (e.g. via
       // Ask Forge round-tripping back) must not duplicate the last breadcrumb.
       if (prev[prev.length - 1]?.toLowerCase() === trimmed.toLowerCase()) return prev;
-      const next = [...prev, trimmed].slice(-MAX_ITEMS);
+      // Revisiting an entity already earlier in the trail (e.g. bouncing between two
+      // related entities while investigating) moves it to the end instead of adding a
+      // second breadcrumb for the same entity — a trail of distinct investigated entities,
+      // not a raw click log (IA-6). This was the source of the observed "SOP-12 > FT-401 >
+      // SOP-12 > FT-401" repeated-pair bug.
+      const withoutExisting = prev.filter((item) => item.toLowerCase() !== trimmed.toLowerCase());
+      const next = [...withoutExisting, trimmed].slice(-MAX_ITEMS);
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;
     });
